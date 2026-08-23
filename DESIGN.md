@@ -1,5 +1,5 @@
 ---
-name: Dr Isaac Atteh Bampoe Addo Tribute
+name: Dr Isaac Bampoe Addo Tribute
 description: A solemn, resolute, and personal digital memorial.
 colors:
   memorial-silver: "#d0d0d0"
@@ -60,7 +60,7 @@ components:
     padding: "40px 24px"
 ---
 
-# Design System: Dr Isaac Atteh Bampoe Addo Tribute
+# Design System: Dr Isaac Bampoe Addo Tribute
 
 ## Overview
 

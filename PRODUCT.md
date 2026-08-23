@@ -6,7 +6,7 @@ brand
 
 ## Users
 
-Family, friends, colleagues, CLOGSAG members, public servants, and members of the Ghanaian public visiting to remember Dr Isaac Atteh Bampoe Addo, understand his public-service legacy, view photographs, and contribute a tribute.
+Family, friends, colleagues, CLOGSAG members, public servants, and members of the Ghanaian public visiting to remember Dr Isaac Bampoe Addo, understand his public-service legacy, view photographs, and contribute a tribute.
 
 ## Product Purpose
 
