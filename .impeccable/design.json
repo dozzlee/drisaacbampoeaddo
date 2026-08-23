@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-08-23T16:46:00Z",
+  "title": "Design System: Dr Isaac Atteh Bampoe Addo Tribute",
+  "extensions": {
+    "colorMeta": {
+      "remembrance-red": { "role": "primary", "displayName": "Remembrance Red", "canonical": "#ff0000", "tonalRamp": ["#ff0000"] },
+      "memorial-black": { "role": "neutral", "displayName": "Memorial Black", "canonical": "#080606", "tonalRamp": ["#080606", "#171313", "#2a2424", "#494141", "#716767", "#9e9494", "#d3cccc", "#f8f5f5"] }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Quarto-Inspired Memorial Display", "purpose": "Source Serif 4 carries the honouree's name and primary remembrance statements." },
+      "body": { "displayName": "Public Record", "purpose": "Montserrat carries roles, dates, long-form legacy copy, navigation, and buttons." }
+    },
+    "shadows": [
+      { "name": "header-scroll", "value": "0 4px 8px rgba(34, 0, 0, 0.09)", "purpose": "Signals that the fixed header has separated from the page after scrolling." }
+    ],
+    "motion": [
+      { "name": "ease-memorial", "value": "cubic-bezier(0.16, 1, 0.3, 1)", "purpose": "Measured state changes and slider controls." },
+      { "name": "portrait-crossfade", "value": "1200ms ease", "purpose": "Slow transition between curated hero portraits." }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" },
+      { "name": "md", "value": "768px" },
+      { "name": "desktop-nav", "value": "900px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Tribute Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Primary invitation to contribute or continue into the memorial record.",
+      "html": "<a class=\"ds-btn-primary\" href=\"#\">Share a Tribute</a>",
+      "css": ".ds-btn-primary{display:inline-flex;min-height:56px;align-items:center;justify-content:center;padding:14px 38px;border:2px solid #ff0000;border-radius:0;background:transparent;color:#ff0000;font:700 14px Montserrat,sans-serif;letter-spacing:.025em;text-transform:uppercase;text-decoration:none}.ds-btn-primary:hover{background:#ff0000;color:#fff}.ds-btn-primary:focus-visible{outline:3px solid #ff0000;outline-offset:4px}"
+    },
+    {
+      "name": "Ghost Tribute Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "High-contrast secondary action for dark sections.",
+      "html": "<a class=\"ds-btn-ghost\" href=\"#\">Submit Your Tribute</a>",
+      "css": ".ds-btn-ghost{display:inline-flex;min-height:56px;align-items:center;justify-content:center;padding:14px 38px;border:2px solid #fff;border-radius:0;background:transparent;color:#fff;font:700 14px Montserrat,sans-serif;letter-spacing:.025em;text-transform:uppercase;text-decoration:none}.ds-btn-ghost:hover{background:#fff;color:#151111}.ds-btn-ghost:focus-visible{outline:3px solid #ff0000;outline-offset:4px}"
+    },
+    {
+      "name": "Tribute Panel",
+      "kind": "card",
+      "refersTo": "dark-panel",
+      "description": "A focused reading field for one remembrance at a time.",
+      "html": "<article class=\"ds-tribute\"><b>“</b><p>A life devoted to service is remembered in the people it changed.</p><small>A GRATEFUL COLLEAGUE</small></article>",
+      "css": ".ds-tribute{max-width:560px;padding:40px 24px;border:1px solid rgba(255,255,255,.19);border-radius:12px;background:linear-gradient(145deg,#221c1c,#110e0e);color:#fff}.ds-tribute b{color:#ff0000;font:700 64px/1 Source Serif 4,serif}.ds-tribute p{font:italic 700 26px/1.45 Source Serif 4,serif}.ds-tribute small{display:block;margin-top:28px;color:rgba(255,255,255,.7);font:700 12px/1.2 Montserrat,sans-serif}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Memorial Programme",
+    "overview": "A formal but personal digital memorial in which portraits lead, black creates a ceremonial field, white preserves readability, and established red marks remembrance and action.",
+    "keyCharacteristics": ["Portrait-led compositions with protected text zones", "Strong black, white, and red hierarchy", "Flat sharp outlined actions with centred uppercase labels", "Mobile-first composition"],
+    "rules": [
+      { "name": "Red Is a Signal", "body": "Red marks remembrance, active state, or contribution, not ordinary decoration.", "section": "colors" },
+      { "name": "The Name Has Space", "body": "The portrait fades fully to black before the display line begins on mobile.", "section": "typography" },
+      { "name": "Structural Depth", "body": "Use a divider or tonal step before adding shadow.", "section": "elevation" }
+    ],
+    "dos": ["Do preserve the black-to-image fade at every viewport.", "Do maintain 44px minimum touch targets and visible keyboard focus.", "Do let one decisive portrait lead the first screen."],
+    "donts": ["Don't make the site look like a generic corporate landing page or cheerful lifestyle brand.", "Don't use decorative funeral clichés.", "Don't place text over a visually busy face or allow disconnected image panels.", "Don't add ornamental effects that compete with the subject."]
+  }
+}
