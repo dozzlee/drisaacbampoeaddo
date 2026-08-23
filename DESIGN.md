@@ -2,14 +2,14 @@
 name: Dr Isaac Atteh Bampoe Addo Tribute
 description: A solemn, resolute, and personal digital memorial.
 colors:
-  remembrance-red: "#ff0000"
-  memorial-black: "#080606"
-  raised-black: "#171313"
-  ink: "#151111"
-  quiet-ink: "#574b49"
+  memorial-silver: "#d0d0d0"
+  memorial-black: "#000000"
+  raised-black: "#111111"
+  soft-black: "#1c1c1c"
+  ink: "#f4f4f4"
+  quiet-ink: "#b8b8b8"
   white: "#ffffff"
-  soft-white: "#f8f5f5"
-  divider: "#e7dddd"
+  divider: "#343434"
 typography:
   display:
     fontFamily: "Source Serif 4, Georgia, serif"
@@ -44,7 +44,7 @@ spacing:
   section: "88px"
 components:
   button-primary:
-    textColor: "{colors.legacy-red}"
+    textColor: "{colors.white}"
     rounded: "{rounded.action}"
     padding: "14px 38px"
     height: "56px"
@@ -66,38 +66,38 @@ components:
 
 **Creative North Star: "The Memorial Programme"**
 
-The site should feel like a carefully prepared memorial programme enlarged into a digital environment: formal enough to honour public service, personal enough to hold a family memory, and quiet enough for the photographs to lead. Black creates the ceremonial field, white keeps long records readable, and the established red marks remembrance and action.
+The site should feel like a carefully prepared memorial programme enlarged into a digital environment: formal enough to honour public service, personal enough to hold a family memory, and quiet enough for the photographs to lead. Layered blacks create the ceremonial field, while silver and white keep the record readable.
 
 The system rejects generic corporate landing-page polish, decorative funeral clichés, and busy image overlays. Precision comes from hairline dividers, measured type, purposeful image fades, and controls with clear physical edges.
 
 **Key Characteristics:**
 
 - Portrait-led compositions with protected text zones
-- Black, white, and established red used with strong hierarchy
+- Black, charcoal, grey, silver, and white used with strong hierarchy
 - Quarto-inspired Source Serif remembrance language paired with Montserrat records
 - Flat, sharp outlined actions with centred uppercase labels
 - Mobile layouts treated as primary compositions, not compressed desktop pages
 
 ## Colors
 
-The palette is ceremonial and high-contrast: true black and white hold the record, while vivid red remains the single emotional signal.
+The palette is ceremonial and high-contrast. Several neutral shades of black create the classic funeral field, while silver, grey, and white provide hierarchy without introducing colour.
 
 ### Primary
 
-- **Remembrance Red** (`#ff0000`): The exact colour for “In Loving Memory,” the fallen date, Share a Tribute outlines, active indicators, and the strongest moments of emphasis.
-- All red interface text uses the exact Remembrance Red. Do not introduce pink, rose, coral, or dark-red text variants. The established Timeline and Words of Remembrance treatments are the only exceptions.
+- **Memorial Silver** (`#d0d0d0`): “In Loving Memory,” Share a Tribute outlines, timeline dates, active indicators, and the strongest moments of emphasis.
+- Do not introduce red, pink, burgundy, rose, or any other chromatic accent.
 
 ### Neutral
 
-- **Memorial Black** (`#080606`): Hero, tribute, timeline, mobile navigation, and footer fields.
-- **Raised Black** (`#171313`): Dark panels that must separate from Memorial Black without relying on shadow.
-- **Ink** (`#151111`): Primary text on light surfaces.
-- **Quiet Ink** (`#574b49`): Secondary text on white, never used below readable contrast.
+- **Memorial Black** (`#000000`): Hero, header, timeline, mobile navigation, and footer fields.
+- **Raised Black** (`#111111`): Primary content sections that separate from Memorial Black without relying on shadow.
+- **Soft Black** (`#1c1c1c`): Tribute panels, captions, and interactive tonal states.
+- **Ink** (`#f4f4f4`): Primary text across the black memorial field.
+- **Quiet Ink** (`#b8b8b8`): Secondary text on dark surfaces, never used below readable contrast.
 - **White** (`#ffffff`): Primary copy on dark fields and reading surfaces.
-- **Soft White** (`#f8f5f5`): Gallery and subtle light-section separation.
-- **Divider** (`#e7dddd`): Hairline structure on light surfaces.
+- **Divider** (`#343434`): Hairline structure between black surfaces.
 
-**The Red Is a Signal Rule.** Red marks remembrance, active state, or contribution. It is not a decorative wash behind ordinary body copy.
+**The Monochrome Signal Rule.** Silver marks remembrance, active state, or contribution. White is reserved for primary reading and strong hover inversions.
 
 ## Typography
 
@@ -127,8 +127,8 @@ The system is flat by default. Depth comes from tonal separation, image masks, b
 ### Buttons
 
 - **Shape:** Sharp rectangular outline with square corners, a centred uppercase label, and no icon.
-- **Primary:** Transparent field with a two-pixel Remembrance Red (`#ff0000`) outline. Share a Tribute keeps this red outline on both light and dark surfaces. Minimum height is `56px`.
-- **Hover / Focus:** Solid colour inversion and a three-pixel red focus ring. No lift, gradient, shadow, or icon motion.
+- **Primary:** Transparent field with a two-pixel Memorial Silver (`#d0d0d0`) outline and white label. Minimum height is `56px`.
+- **Hover / Focus:** Solid white inversion and a three-pixel silver focus ring. No lift, gradient, shadow, or icon motion.
 - **Secondary / Ghost:** Transparent white outline on dark fields, becoming solid white on hover.
 
 ### Cards / Containers
@@ -141,7 +141,7 @@ The system is flat by default. Depth comes from tonal separation, image masks, b
 
 ### Navigation
 
-Desktop navigation is a quiet Montserrat row on white with a red underline response. Mobile navigation becomes a full black field, uses larger Source Serif 4 links, a circular close control, and anchors the primary tribute action to the bottom.
+Desktop navigation is a quiet Montserrat row on black with a silver underline response. Mobile navigation remains a full black field, uses larger Source Serif 4 links, a circular close control, and anchors the primary tribute action to the bottom.
 
 ### Portrait Slider
 

@@ -188,18 +188,18 @@
   /* ================= TIMELINE ================= */
   var timelineData = [
     { year: "March 2009", title: "National Treasurer, Civil Servants Association", text: "Earliest documented national leadership role, representing members in salary-arrears negotiations with government." },
-    { year: "Early 2011", title: "Becomes Executive Secretary of CLOGSAG", text: "Assumes the association's top administrative office, a post he would hold for the next fifteen years." },
+    { year: "Early 2011", title: "Becomes Executive Secretary of CLOGSAG", text: "Assumes the association's top administrative office, a post he held for the next fifteen years." },
     { year: "September 2011", title: "Single Spine Migration", text: "Leads CLOGSAG's successful migration onto the Single Spine Salary Structure, jointly announced with the Ministry of Employment." },
-    { year: "August 2013", title: "Pempamsie Hotel Inaugurated", text: "A 61-room, GH¢12 million hospitality centre in Cape Coast, CLOGSAG's flagship investment in income-generating assets." },
+    { year: "August 2013", title: "Pempamsie Hotel Inaugurated", text: "A 140-room hospitality centre in Cape Coast and CLOGSAG's flagship investment in income-generating assets." },
     { year: "March 2015", title: "CLOGSAG Fund Board Inaugurated", text: "Appointed to the 13-member board overseeing members' supplementary savings and lump-sum benefits." },
     { year: "July 2015", title: "Honorary Doctorate Conferred", text: "Awarded an honorary Doctor of Philosophy by the Technological University of the Americas for exemplary labour leadership." },
     { year: "2017", title: "Joins the Civil Service Council", text: "Appointed CLOGSAG's representative on the governing Civil Service Council, a role he held for years." },
-    { year: "2018 – 2019", title: "Tier-2 Pension Breakthrough", text: "Confirms the transfer of GH¢3.1 billion in outstanding Tier-2 pension contributions, closing a six-year national dispute." },
+    { year: "2018 – 2019", title: "Tier-2 Pension Breakthrough", text: "Confirms the transfer of outstanding Tier-2 pension contributions, closing a six-year national dispute." },
     { year: "October 2020", title: "Pempamsie Tier-3 Fund Launched", text: "A voluntary retirement savings product introduced with Hedge Pensions to help members save beyond the mandatory pension." },
     { year: "May 2022", title: "Neutrality Allowance Secured", text: "Ends a three-week nationwide strike after government agrees to pay the long-sought Neutrality Allowance." },
     { year: "September 2022", title: "Public Services Pensioners Association", text: "Inaugurates a new body to represent and advocate for retired public servants after they leave active service." },
     { year: "October 2023", title: "Pempamsie Housing Scheme", text: "Launches a pension-backed mortgage programme helping members finance or complete their primary residences." },
-    { year: "July 2026", title: "Still in Service", text: "Presides over the election and swearing-in of CLOGSAG's new Ashanti Regional executives, weeks before his passing." },
+    { year: "July 2026", title: "Still in Service", text: "Presides over the election and swearing-in of CLOGSAG's newly elected executives, weeks before his passing." },
     { year: "21 August 2026", title: "Passes Away", text: "Dies after a brief illness while still serving as Executive Secretary of CLOGSAG and Chairman of the Forum of Public Sector Unions." }
   ];
 

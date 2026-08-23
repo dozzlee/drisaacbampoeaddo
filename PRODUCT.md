@@ -10,7 +10,7 @@ Family, friends, colleagues, CLOGSAG members, public servants, and members of th
 
 ## Product Purpose
 
-Create a dignified permanent tribute that records Dr Bampoe Addo's life, leadership, and service. Success means visitors can immediately understand who he was, move through his legacy without friction on any device, and confidently share a memory of their own.
+Create a dignified permanent tribute that records Dr Bampoe Addo's life, leadership, and service. The central message is “Celebrating a life of distinguished service and leadership.” Success means visitors can immediately understand who he was, move through his legacy without friction on any device, and confidently share a memory of their own.
 
 ## Brand Personality
 
@@ -23,7 +23,7 @@ Avoid a generic corporate landing page, a cheerful lifestyle aesthetic, decorati
 ## Design Principles
 
 - Keep the person, not the interface, at the centre of every composition.
-- Use contrast and restraint to create dignity, then let the established red carry emphasis.
+- Use black, charcoal, grey, silver, and white with restraint to create dignity and emphasis.
 - Make the first screen immediately legible, especially on a phone.
 - Treat every contribution action as an invitation, not a sales conversion.
 - Preserve the record: names, dates, achievements, quotations, and photographs remain clear and easy to navigate.
