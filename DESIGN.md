@@ -147,6 +147,10 @@ Desktop navigation is a quiet Montserrat row on black with a silver underline re
 
 Use every browser-compatible photograph listed in `js/pictures.js`, including photographs in nested folders. Crossfade slowly through the complete collection using two reusable image layers so the large archive does not create hundreds of hero elements. Expose previous and next controls, and stop automatic movement for reduced-motion users. The image must fade to Memorial Black at its boundaries. Regenerate the manifest with `node scripts/generate-picture-manifest.mjs` whenever photographs are added or removed.
 
+### Mobile Gallery
+
+Preserve every photograph's native aspect ratio below the desktop breakpoint. Landscape images remain wide and portrait images remain tall, with `object-fit: contain` preventing mobile crops. Desktop gallery tiles may use a consistent landscape frame for rhythm. Portrait hero images use a reduced contained scale so faces and clothing remain visible against the black field.
+
 ### Tribute Slider
 
 One quotation occupies the reading area at a time. The panel uses Raised Black, a single quiet border, large serif quotation text, and 48px circular previous/next controls below on mobile.

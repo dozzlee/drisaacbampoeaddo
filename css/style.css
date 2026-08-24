@@ -67,6 +67,8 @@ h1, h2, h3, h4 { font-family: var(--serif); font-weight: 700; line-height: 1.12;
 .hero::after { content: ""; position: absolute; z-index: 1; inset: auto 0 0; height: 40%; pointer-events: none; background: linear-gradient(180deg, transparent, var(--night) 48%); }
 .hero-bg-slider { position: absolute; z-index: 0; top: var(--header-height); right: 0; left: 0; height: min(63vh, 36rem); background: var(--night); }
 .hero-bg-slide { position: absolute; inset: 0; opacity: 0; background-position: center 22%; background-repeat: no-repeat; background-size: cover; filter: saturate(0.72) contrast(1.04); transform: scale(1.025); transition: opacity 1.2s ease, transform 8s linear; }
+.hero-bg-slide.is-portrait { background-position: center 18%; background-size: auto 88%; }
+.hero-bg-slide.is-landscape { background-size: cover; }
 .hero-bg-slide.active { opacity: 1; transform: scale(1.08); }
 .hero-overlay { position: absolute; z-index: 1; top: var(--header-height); right: 0; left: 0; height: calc(min(63vh, 36rem) + 4rem); background: linear-gradient(180deg, rgba(0, 0, 0, 0.05) 18%, rgba(0, 0, 0, 0.42) 52%, var(--night) 84%); }
 .hero-inner { position: relative; z-index: 3; max-width: 48rem; }
@@ -147,9 +149,9 @@ h1, h2, h3, h4 { font-family: var(--serif); font-weight: 700; line-height: 1.12;
 .gallery-slider { position: relative; max-width: 82rem; margin: 0 auto; }
 .gallery-track { overflow-x: auto; overflow-y: hidden; scroll-behavior: smooth; scroll-snap-type: x mandatory; scrollbar-width: none; }
 .gallery-track::-webkit-scrollbar { display: none; }
-.gallery-slides { display: flex; gap: 0.875rem; }
-.gallery-slide { flex: 0 0 86%; overflow: hidden; aspect-ratio: 4 / 5; border-radius: var(--radius); background: var(--night-raised); scroll-snap-align: center; }
-.gallery-slide img { width: 100%; height: 100%; object-fit: cover; transition: transform 700ms var(--ease), filter 400ms ease; }
+.gallery-slides { display: flex; align-items: flex-start; gap: 0.875rem; }
+.gallery-slide { flex: 0 0 86%; overflow: hidden; aspect-ratio: var(--photo-ratio, 4 / 5); border-radius: var(--radius); background: var(--night-raised); scroll-snap-align: center; }
+.gallery-slide img { width: 100%; height: 100%; object-fit: contain; transition: transform 700ms var(--ease), filter 400ms ease; }
 .gallery-slide:hover img { filter: saturate(0.85); transform: scale(1.04); }
 .gallery-controls { display: flex; justify-content: center; gap: 0.75rem; margin-top: 1.5rem; }
 .gallery-controls .slider-nav { position: static; border-color: var(--ink); background: var(--ink); color: #fff; }
@@ -177,7 +179,7 @@ footer { padding: 4rem 0 1.75rem; border-top: 3px solid var(--silver); backgroun
   .hero-actions { flex-direction: row; }
   .hero-actions .btn { width: auto; }
   .tribute-card { min-height: 23rem; padding: 3.5rem 3rem; }
-  .gallery-slide { flex-basis: 60%; aspect-ratio: 4 / 3; }
+  .gallery-slide { flex-basis: 60%; }
   .footer-inner, .footer-bottom { flex-direction: row; justify-content: space-between; }
 }
 
@@ -207,7 +209,8 @@ footer { padding: 4rem 0 1.75rem; border-top: 3px solid var(--silver); backgroun
   .hero { min-height: 100svh; align-items: center; padding: calc(var(--header-height) + 3rem) 0 5.5rem; }
   .hero::after { display: none; }
   .hero-bg-slider { top: var(--header-height); bottom: 0; left: 34%; height: auto; }
-  .hero-bg-slide { background-position: center 24%; background-size: cover; }
+  .hero-bg-slide { background-position: center 24%; }
+  .hero-bg-slide.is-portrait { background-position: center; background-size: auto 86%; }
   .hero-overlay { top: var(--header-height); bottom: 0; height: auto; background: linear-gradient(90deg, var(--night) 0%, var(--night) 35%, rgba(0, 0, 0, 0.86) 48%, rgba(0, 0, 0, 0.12) 76%, var(--night) 100%), linear-gradient(180deg, rgba(0, 0, 0, 0.05) 55%, var(--night) 100%); }
   .hero-inner { width: min(100%, var(--container)); max-width: none; }
   .hero h1 { font-size: clamp(3.7rem, 5.85vw, 5.25rem); }
@@ -224,6 +227,8 @@ footer { padding: 4rem 0 1.75rem; border-top: 3px solid var(--silver); backgroun
   .ach-card:nth-child(4n) { border-right: 0; }
   .ach-card:hover { background: var(--paper-soft); }
   .gallery-slide { flex-basis: calc(50% - 0.4375rem); }
+  .gallery-slide { aspect-ratio: 4 / 3; }
+  .gallery-slide img { object-fit: cover; }
 }
 
 @media (prefers-reduced-motion: reduce) {

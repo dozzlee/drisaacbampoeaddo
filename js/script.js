@@ -76,13 +76,41 @@
     var activeHeroLayer = 0;
     var heroTimer;
 
+    function setHeroOrientation(layer, width, height){
+      layer.classList.toggle("is-portrait", height > width);
+      layer.classList.toggle("is-landscape", width >= height);
+    }
+
+    function prepareHeroLayer(layer, src, activate){
+      var encodedSrc = encodeURI(src).replace(/"/g, "%22");
+      var probe = new Image();
+      layer.dataset.pendingSrc = src;
+      probe.onload = function(){
+        if (layer.dataset.pendingSrc !== src) return;
+        setHeroOrientation(layer, probe.naturalWidth, probe.naturalHeight);
+        layer.style.backgroundImage = 'url("' + encodedSrc + '")';
+        if (activate) activate();
+      };
+      probe.onerror = function(){
+        if (layer.dataset.pendingSrc !== src) return;
+        layer.classList.remove("is-portrait", "is-landscape");
+        layer.style.backgroundImage = 'url("' + encodedSrc + '")';
+        if (activate) activate();
+      };
+      probe.src = src;
+    }
+
+    prepareHeroLayer(firstHeroLayer, heroImages[0]);
+
     function showHero(index){
       heroIndex = (index + heroImages.length) % heroImages.length;
       var nextLayer = activeHeroLayer === 0 ? 1 : 0;
-      heroSlideEls[nextLayer].style.backgroundImage = 'url("' + encodeURI(heroImages[heroIndex]).replace(/"/g, "%22") + '")';
-      heroSlideEls[nextLayer].classList.add("active");
-      heroSlideEls[activeHeroLayer].classList.remove("active");
-      activeHeroLayer = nextLayer;
+      var previousLayer = activeHeroLayer;
+      prepareHeroLayer(heroSlideEls[nextLayer], heroImages[heroIndex], function(){
+        heroSlideEls[nextLayer].classList.add("active");
+        heroSlideEls[previousLayer].classList.remove("active");
+        activeHeroLayer = nextLayer;
+      });
     }
 
     [
@@ -102,7 +130,7 @@
 
     function startHeroTimer(){
       if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches){
-        heroTimer = setInterval(function(){ showHero((heroIndex + 1) % heroSlideEls.length); }, 7000);
+        heroTimer = setInterval(function(){ showHero((heroIndex + 1) % heroImages.length); }, 7000);
       }
     }
     function restartHeroTimer(){ clearInterval(heroTimer); startHeroTimer(); }
@@ -223,9 +251,15 @@
     var slide = document.createElement("div");
     slide.className = "gallery-slide";
     var img = document.createElement("img");
-    img.src = src;
     img.alt = "Dr Isaac Bampoe Addo, photo memory";
     img.loading = "lazy";
+    img.addEventListener("load", function(){
+      if (!img.naturalWidth || !img.naturalHeight) return;
+      slide.style.setProperty("--photo-ratio", img.naturalWidth + " / " + img.naturalHeight);
+      slide.classList.toggle("is-landscape", img.naturalWidth > img.naturalHeight);
+      slide.classList.toggle("is-portrait", img.naturalHeight >= img.naturalWidth);
+    });
+    img.src = src;
     slide.appendChild(img);
     galSlides.appendChild(slide);
   });
