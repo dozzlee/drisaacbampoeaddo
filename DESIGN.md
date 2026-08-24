@@ -149,7 +149,7 @@ Use every browser-compatible photograph listed in `js/pictures.js`, including ph
 
 ### Mobile Gallery
 
-Preserve every photograph's native aspect ratio below the desktop breakpoint. Landscape images remain wide and portrait images remain tall, with `object-fit: contain` preventing mobile crops. Desktop gallery tiles may use a consistent landscape frame for rhythm. Portrait hero images use a reduced contained scale so faces and clothing remain visible against the black field.
+Preserve every gallery photograph's native aspect ratio below the desktop breakpoint. Landscape images remain wide and portrait images remain tall, with `object-fit: contain` preventing mobile crops. Desktop gallery tiles may use a consistent landscape frame for rhythm. In the mobile header only, portrait images use a centered `cover` crop so the image fills the frame without side edges; desktop portrait headers retain their reduced contained scale.
 
 ### Tribute Slider
 
