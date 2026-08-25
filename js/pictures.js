@@ -530,6 +530,7 @@ window.TRIBUTE_PICTURES = [
   "web-pictures/gallery-070.jpg",
   "web-pictures/header.png",
   "web-pictures/headerfinal.png",
+  "web-pictures/IMG_5669_Original - Nana Sarpong.jpeg",
   "web-pictures/oresz.jpg",
   "web-pictures/photo.jpeg",
   "web-pictures/presakuffo2.JPG",
