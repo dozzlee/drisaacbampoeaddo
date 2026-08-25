@@ -209,6 +209,11 @@
       quote: "Dad taught us that service to others is the truest measure of a life well lived. We will carry his legacy forward.",
       name: "The Bampoe Addo Family",
       rel: "In Loving Memory"
+    },
+    {
+      quote: "Thank you for everything. May you rest well in the Bosom of the Lord. Amen.",
+      name: "NanaYaw",
+      rel: "In Loving Memory"
     }
   ];
 
