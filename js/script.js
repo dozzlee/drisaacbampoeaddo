@@ -8,6 +8,9 @@
     "web-pictures/photo.jpeg",
     "web-pictures/gallery-001.jpg"
   ];
+  var portraitGalleryFiles = Array.isArray(window.TRIBUTE_PORTRAIT_PICTURES)
+    ? window.TRIBUTE_PORTRAIT_PICTURES.slice()
+    : galleryFiles.slice();
 
   function shuffle(arr){
     var a = arr.slice();
@@ -96,7 +99,12 @@
   /* Reuses two layers so the complete picture directory can crossfade efficiently. */
   var heroSlider = document.getElementById("heroBgSlider");
   if (heroSlider){
-    var heroImages = [HERO_HEADER_IMAGE].concat(prioritizePhotos(galleryFiles.filter(function(src){
+    var presidentGalleryFiles = galleryFiles.filter(isPresidentPhoto);
+    var nonPresidentPortraits = portraitGalleryFiles.filter(function(src){
+      return !isPresidentPhoto(src);
+    });
+    var heroCandidates = presidentGalleryFiles.concat(nonPresidentPortraits);
+    var heroImages = [HERO_HEADER_IMAGE].concat(prioritizePhotos(heroCandidates.filter(function(src){
       return src !== HERO_HEADER_IMAGE;
     })));
     var heroControls = document.getElementById("heroSliderControls");

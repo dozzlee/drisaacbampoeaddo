@@ -68,7 +68,7 @@ h1, h2, h3, h4 { font-family: var(--serif); font-weight: 700; line-height: 1.12;
 .hero-bg-slider { position: absolute; z-index: 0; top: var(--header-height); right: 0; left: 0; height: min(63vh, 36rem); background: var(--night); }
 .hero-bg-slide { position: absolute; inset: 0; opacity: 0; background-position: center 22%; background-repeat: no-repeat; background-size: cover; filter: saturate(0.72) contrast(1.04); transform: scale(1.025); transition: opacity 1.2s ease, transform 8s linear; }
 .hero-bg-slide.is-portrait { background-position: center 18%; background-size: cover; }
-.hero-bg-slide.is-landscape { background-size: cover; }
+.hero-bg-slide.is-landscape { background-position: center; background-size: contain; }
 .hero-bg-slide.active { opacity: 1; transform: scale(1.08); }
 .hero-overlay { position: absolute; z-index: 1; top: var(--header-height); right: 0; left: 0; height: calc(min(63vh, 36rem) + 4rem); background: linear-gradient(180deg, rgba(0, 0, 0, 0.05) 18%, rgba(0, 0, 0, 0.42) 52%, var(--night) 84%); }
 .hero-inner { position: relative; z-index: 3; max-width: 48rem; }
