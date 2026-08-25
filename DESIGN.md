@@ -147,6 +147,8 @@ Desktop navigation is a quiet Montserrat row on black with a silver underline re
 
 Use every browser-compatible photograph listed in `js/pictures.js`, including photographs in nested folders. Crossfade slowly through the complete collection using two reusable image layers so the large archive does not create hundreds of hero elements. Expose previous and next controls, and stop automatic movement for reduced-motion users. The image must fade to Memorial Black at its boundaries. Regenerate the manifest with `node scripts/generate-picture-manifest.mjs` whenever photographs are added or removed.
 
+Use `headerfinal.png` as the opening hero image. After it, photographs whose filenames use president markers such as `pres`, `prez`, or `prezzy`, together with the known president photograph `oresz.jpg`, appear before the rest of the archive in both photo sequences. The Legacy portrait alternates every seven seconds between `F18_5598.JPG` and `F18_9952.JPG`, fading quietly between them without changing the surrounding card.
+
 ### Mobile Gallery
 
 Preserve every gallery photograph's native aspect ratio below the desktop breakpoint. Landscape images remain wide and portrait images remain tall, with `object-fit: contain` preventing mobile crops. Desktop gallery tiles may use a consistent landscape frame for rhythm. In the mobile header only, portrait images use a centered `cover` crop so the image fills the frame without side edges; desktop portrait headers retain their reduced contained scale.

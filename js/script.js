@@ -2,8 +2,9 @@
   "use strict";
 
   var FORM_URL = "https://forms.gle/51uhbtPHeEK7PiHK6";
+  var HERO_HEADER_IMAGE = "web-pictures/headerfinal.png";
   var galleryFiles = Array.isArray(window.TRIBUTE_PICTURES) ? window.TRIBUTE_PICTURES.slice() : [
-    "web-pictures/header.png",
+    HERO_HEADER_IMAGE,
     "web-pictures/photo.jpeg",
     "web-pictures/gallery-001.jpg"
   ];
@@ -17,7 +18,18 @@
     return a;
   }
 
-  var shuffledGallery = shuffle(galleryFiles);
+  function isPresidentPhoto(src){
+    var filename = src.split("/").pop().toLowerCase();
+    return /^(?:pre(?:s|z)|oresz)/.test(filename);
+  }
+
+  function prioritizePhotos(files){
+    var presidentPhotos = files.filter(isPresidentPhoto);
+    var remainingPhotos = files.filter(function(src){ return !isPresidentPhoto(src); });
+    return shuffle(presidentPhotos).concat(shuffle(remainingPhotos));
+  }
+
+  var prioritizedGallery = prioritizePhotos(galleryFiles);
 
   /* ---------------- Header: scroll shadow + mobile menu ---------------- */
   var header = document.getElementById("siteHeader");
@@ -51,20 +63,41 @@
   }, { threshold: 0.15 });
   revealEls.forEach(function(el){ io.observe(el); });
 
-  /* ---------------- Legacy image: randomize on load ---------------- */
+  /* ---------------- Legacy image: alternate between two selected photographs ---------------- */
   var legacyImg = document.getElementById("legacyImage");
   if (legacyImg){
-    var randomPick = galleryFiles[Math.floor(Math.random() * galleryFiles.length)];
-    legacyImg.src = randomPick;
+    var legacyImages = [
+      "web-pictures/F18_5598.JPG",
+      "web-pictures/F18_9952.JPG"
+    ];
+    var legacyIndex = 0;
+    var reduceLegacyMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    legacyImg.src = legacyImages[legacyIndex];
     legacyImg.alt = "Dr Isaac Bampoe Addo";
+    legacyImages.forEach(function(src){
+      var preload = new Image();
+      preload.src = src;
+    });
+    setInterval(function(){
+      legacyIndex = (legacyIndex + 1) % legacyImages.length;
+      if (reduceLegacyMotion){
+        legacyImg.src = legacyImages[legacyIndex];
+        return;
+      }
+      legacyImg.classList.add("is-switching");
+      setTimeout(function(){
+        legacyImg.src = legacyImages[legacyIndex];
+        legacyImg.classList.remove("is-switching");
+      }, 600);
+    }, 7000);
   }
 
   /* ================= HERO BACKGROUND SLIDER ================= */
   /* Reuses two layers so the complete picture directory can crossfade efficiently. */
   var heroSlider = document.getElementById("heroBgSlider");
   if (heroSlider){
-    var heroImages = ["web-pictures/header.png"].concat(shuffle(galleryFiles.filter(function(src){
-      return src !== "web-pictures/header.png";
+    var heroImages = [HERO_HEADER_IMAGE].concat(prioritizePhotos(galleryFiles.filter(function(src){
+      return src !== HERO_HEADER_IMAGE;
     })));
     var heroControls = document.getElementById("heroSliderControls");
     var firstHeroLayer = heroSlider.querySelector(".hero-bg-slide");
@@ -243,11 +276,11 @@
   });
   document.querySelectorAll(".tl-item.reveal").forEach(function(el){ io.observe(el); });
 
-  /* ================= GALLERY SLIDER (large tiles, randomized order, native scroll) ================= */
+  /* ================= GALLERY SLIDER (president photographs first, then randomized archive) ================= */
   var galTrack = document.querySelector(".gallery-track");
   var galSlides = document.getElementById("gallerySlides");
   var GAL_GAP = 24;
-  shuffledGallery.forEach(function(src){
+  prioritizedGallery.forEach(function(src){
     var slide = document.createElement("div");
     slide.className = "gallery-slide";
     var img = document.createElement("img");
