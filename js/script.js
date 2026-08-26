@@ -32,7 +32,112 @@
     return shuffle(presidentPhotos).concat(shuffle(remainingPhotos));
   }
 
-  var prioritizedGallery = prioritizePhotos(galleryFiles);
+  var featuredGalleryFiles = [
+    "web-pictures/IMG_0825.jpg",
+    "web-pictures/IMG_0824.jpg",
+    "web-pictures/IMG_0823.jpg",
+    "web-pictures/IMG_0822.jpg",
+    "web-pictures/IMG_0821.jpg",
+    "web-pictures/IMG_0819.jpg",
+    "web-pictures/IMG_0818.jpg",
+    "web-pictures/IMG_0817.jpg",
+    "web-pictures/IMG_0816.jpg",
+    "web-pictures/IMG_0815.jpg",
+    "web-pictures/IMG_0813.jpg",
+    "web-pictures/IMG_0812.jpg",
+    "web-pictures/IMG_0809.jpg",
+    "web-pictures/IMG_0805.jpg",
+    "web-pictures/IMG_0801.jpg",
+    "web-pictures/IMG_0800.jpg",
+    "web-pictures/IMG_0799.jpg",
+    "web-pictures/IMG_0798.jpg",
+    "web-pictures/IMG_0797.jpg",
+    "web-pictures/IMG_0796.jpg",
+    "web-pictures/cd45616d-83c0-4f92-b4a1-d3568850f630.JPG"
+  ].filter(function(src){ return galleryFiles.indexOf(src) !== -1; });
+  var featuredGallerySet = new Set(featuredGalleryFiles);
+  var randomizedGallery = featuredGalleryFiles.concat(shuffle(galleryFiles.filter(function(src){
+    return !featuredGallerySet.has(src);
+  })));
+
+  /* ---------------- Remembrance service announcement ---------------- */
+  var eventModal = document.getElementById("eventModal");
+  var eventModalClose = document.getElementById("eventModalClose");
+  var eventFlyerTrack = document.getElementById("eventFlyerTrack");
+  var eventFlyerDots = document.getElementById("eventFlyerDots");
+  var eventFlyerIndex = 0;
+  var eventFlyerCount = eventFlyerTrack ? eventFlyerTrack.children.length : 0;
+  var eventFlyerTimer;
+  var eventCountdownTimer;
+  var eventTarget = new Date("2026-08-28T08:30:00Z").getTime();
+  var lastFocusedElement = document.activeElement;
+
+  function showEventFlyer(index){
+    if (!eventFlyerCount) return;
+    eventFlyerIndex = (index + eventFlyerCount) % eventFlyerCount;
+    eventFlyerTrack.style.transform = "translateX(-" + (eventFlyerIndex * 100) + "%)";
+    eventFlyerDots.querySelectorAll("button").forEach(function(dot, dotIndex){
+      dot.classList.toggle("active", dotIndex === eventFlyerIndex);
+      dot.setAttribute("aria-current", dotIndex === eventFlyerIndex ? "true" : "false");
+    });
+  }
+
+  function restartEventFlyerTimer(){
+    clearInterval(eventFlyerTimer);
+    if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches){
+      eventFlyerTimer = setInterval(function(){ showEventFlyer(eventFlyerIndex + 1); }, 5500);
+    }
+  }
+
+  function closeEventModal(){
+    eventModal.hidden = true;
+    document.body.classList.remove("event-modal-open");
+    clearInterval(eventFlyerTimer);
+    clearInterval(eventCountdownTimer);
+    window.dispatchEvent(new CustomEvent("memorial:event-closed"));
+    if (lastFocusedElement && typeof lastFocusedElement.focus === "function") lastFocusedElement.focus();
+  }
+
+  function setCountdownValue(id, value){
+    document.getElementById(id).textContent = String(Math.max(0, value)).padStart(2, "0");
+  }
+
+  function updateEventCountdown(){
+    var remaining = Math.max(0, eventTarget - Date.now());
+    var totalSeconds = Math.floor(remaining / 1000);
+    var days = Math.floor(totalSeconds / 86400);
+    var hours = Math.floor((totalSeconds % 86400) / 3600);
+    var minutes = Math.floor((totalSeconds % 3600) / 60);
+    var seconds = totalSeconds % 60;
+    setCountdownValue("countdownDays", days);
+    setCountdownValue("countdownHours", hours);
+    setCountdownValue("countdownMinutes", minutes);
+    setCountdownValue("countdownSeconds", seconds);
+    if (!remaining) clearInterval(eventCountdownTimer);
+  }
+
+  if (eventModal){
+    document.body.classList.add("event-modal-open");
+    Array.from(eventFlyerTrack.children).forEach(function(_, index){
+      var dot = document.createElement("button");
+      dot.type = "button";
+      dot.setAttribute("aria-label", "View flyer " + (index + 1));
+      dot.addEventListener("click", function(){ showEventFlyer(index); restartEventFlyerTimer(); });
+      eventFlyerDots.appendChild(dot);
+    });
+    document.getElementById("eventFlyerPrev").addEventListener("click", function(){ showEventFlyer(eventFlyerIndex - 1); restartEventFlyerTimer(); });
+    document.getElementById("eventFlyerNext").addEventListener("click", function(){ showEventFlyer(eventFlyerIndex + 1); restartEventFlyerTimer(); });
+    eventModalClose.addEventListener("click", closeEventModal);
+    eventModal.querySelector("[data-event-close]").addEventListener("click", closeEventModal);
+    document.addEventListener("keydown", function(event){
+      if (event.key === "Escape" && !eventModal.hidden) closeEventModal();
+    });
+    showEventFlyer(0);
+    restartEventFlyerTimer();
+    updateEventCountdown();
+    eventCountdownTimer = setInterval(updateEventCountdown, 1000);
+    setTimeout(function(){ eventModalClose.focus(); }, 0);
+  }
 
   /* ---------------- Header: scroll shadow + mobile menu ---------------- */
   var header = document.getElementById("siteHeader");
@@ -116,6 +221,7 @@
     var heroIndex = 0;
     var activeHeroLayer = 0;
     var heroTimer;
+    var heroStartTimeout;
 
     function setHeroOrientation(layer, width, height){
       layer.classList.toggle("is-portrait", height > width);
@@ -169,69 +275,89 @@
       heroControls.appendChild(button);
     });
 
-    function startHeroTimer(){
+    function startHeroTimer(initialDelay){
+      clearTimeout(heroStartTimeout);
+      clearInterval(heroTimer);
       if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches){
-        heroTimer = setInterval(function(){ showHero((heroIndex + 1) % heroImages.length); }, 7000);
+        if (initialDelay){
+          heroStartTimeout = setTimeout(function(){
+            showHero((heroIndex + 1) % heroImages.length);
+            heroTimer = setInterval(function(){ showHero((heroIndex + 1) % heroImages.length); }, 7000);
+          }, initialDelay);
+        } else {
+          heroTimer = setInterval(function(){ showHero((heroIndex + 1) % heroImages.length); }, 7000);
+        }
       }
     }
-    function restartHeroTimer(){ clearInterval(heroTimer); startHeroTimer(); }
-    startHeroTimer();
+    function restartHeroTimer(){ startHeroTimer(); }
+    if (eventModal && !eventModal.hidden){
+      window.addEventListener("memorial:event-closed", function(){ startHeroTimer(8000); }, { once: true });
+    } else {
+      startHeroTimer(8000);
+    }
   }
 
-  /* ================= TRIBUTES (filler content) ================= */
-  var tributes = [
-    {
-      quote: "Dr Bampoe Addo fought for every one of us. Because of him, my Tier-2 pension is finally in the hands of people who actually care about workers.",
-      name: "A Grateful CLOGSAG Member",
-      rel: "Local Government Service, Ashanti Region"
-    },
-    {
-      quote: "He picked up the phone at any hour if a member had a problem. Losing him feels like losing a father to this entire association.",
-      name: "A Civil Servant Colleague",
-      rel: "Office of the Head of the Civil Service"
-    },
-    {
-      quote: "Sir never backed down from a fight he believed was right for us. The Neutrality Allowance would not exist without his persistence.",
-      name: "A Regional Union Officer",
-      rel: "CLOGSAG, Northern Region"
-    },
-    {
-      quote: "He believed our welfare didn't end at retirement. The Pensioners Association he built continues to change lives today.",
-      name: "A Retired Public Servant",
-      rel: "Public Services Pensioners Association"
-    },
-    {
-      quote: "A brilliant negotiator, but above all a kind and humble man who always remembered your name.",
-      name: "A Friend & Fellow Unionist",
-      rel: "Forum of Public Sector Unions"
-    },
-    {
-      quote: "Dad taught us that service to others is the truest measure of a life well lived. We will carry his legacy forward.",
-      name: "The Bampoe Addo Family",
-      rel: "In Loving Memory"
-    },
-    {
-      quote: "Thank you for everything. May you rest well in the Bosom of the Lord. Amen.",
-      name: "NanaYaw",
-      rel: "In Loving Memory"
-    }
-  ];
+  /* ================= TRIBUTES ================= */
+  var tributes = Array.isArray(window.MEMORIAL_TRIBUTES) ? window.MEMORIAL_TRIBUTES : [];
 
   var tribSlides = document.getElementById("tributeSlides");
   var tribDotsWrap = document.getElementById("tribDots");
+
+  function appendTributeCopy(container, tribute){
+    var quoteMark = document.createElement("span");
+    quoteMark.className = "quote-mark";
+    quoteMark.setAttribute("aria-hidden", "true");
+    quoteMark.innerHTML = "&ldquo;";
+    container.appendChild(quoteMark);
+
+    tribute.quote.forEach(function(paragraph){
+      var quote = document.createElement("p");
+      quote.className = "quote";
+      quote.textContent = paragraph;
+      container.appendChild(quote);
+    });
+
+    var name = document.createElement("div");
+    name.className = "tribute-name";
+    name.textContent = tribute.name;
+    container.appendChild(name);
+
+    if (tribute.rel){
+      var relationship = document.createElement("div");
+      relationship.className = "tribute-rel";
+      relationship.textContent = tribute.rel;
+      container.appendChild(relationship);
+    }
+  }
+
+  function createTributeImage(tribute, loading){
+    var imageWrap = document.createElement("div");
+    imageWrap.className = "tribute-photo";
+    var image = document.createElement("img");
+    image.alt = tribute.imageAlt;
+    image.loading = loading;
+    image.decoding = "async";
+    image.src = tribute.image;
+    imageWrap.appendChild(image);
+    return imageWrap;
+  }
+
   tributes.forEach(function(t, idx){
     var slide = document.createElement("div");
     slide.className = "tribute-slide";
-    slide.innerHTML =
-      '<div class="tribute-card">' +
-        '<span class="quote-mark">&ldquo;</span>' +
-        '<p class="quote">' + t.quote + '</p>' +
-        '<div class="tribute-name">' + t.name + '</div>' +
-        '<div class="tribute-rel">' + t.rel + '</div>' +
-      '</div>';
+    var card = document.createElement("article");
+    card.className = "tribute-card";
+    card.appendChild(createTributeImage(t, idx === 0 ? "eager" : "lazy"));
+    var copy = document.createElement("div");
+    copy.className = "tribute-copy";
+    appendTributeCopy(copy, t);
+    card.appendChild(copy);
+    slide.appendChild(card);
     tribSlides.appendChild(slide);
 
     var dot = document.createElement("button");
+    dot.type = "button";
+    dot.setAttribute("aria-label", "View tribute " + (idx + 1));
     if (idx === 0) dot.classList.add("active");
     dot.addEventListener("click", function(){ goToTribute(idx); });
     tribDotsWrap.appendChild(dot);
@@ -289,21 +415,24 @@
   });
   document.querySelectorAll(".tl-item.reveal").forEach(function(el){ io.observe(el); });
 
-  /* ================= GALLERY SLIDER (president photographs first, then randomized archive) ================= */
+  /* ================= GALLERY SLIDER (fully randomized on every page load) ================= */
   var galTrack = document.querySelector(".gallery-track");
   var galSlides = document.getElementById("gallerySlides");
   var GAL_GAP = 24;
-  prioritizedGallery.forEach(function(src){
+  randomizedGallery.forEach(function(src, idx){
     var slide = document.createElement("div");
     slide.className = "gallery-slide";
     var img = document.createElement("img");
     img.alt = "Dr Isaac Bampoe Addo, photo memory";
-    img.loading = "lazy";
+    img.loading = idx < 10 ? "eager" : "lazy";
+    img.decoding = "async";
+    if (idx < 4) img.fetchPriority = "high";
     img.addEventListener("load", function(){
       if (!img.naturalWidth || !img.naturalHeight) return;
       slide.style.setProperty("--photo-ratio", img.naturalWidth + " / " + img.naturalHeight);
       slide.classList.toggle("is-landscape", img.naturalWidth > img.naturalHeight);
       slide.classList.toggle("is-portrait", img.naturalHeight >= img.naturalWidth);
+      slide.classList.add("is-loaded");
     });
     img.src = src;
     slide.appendChild(img);
@@ -312,6 +441,18 @@
 
   var galSlideEls = galSlides.querySelectorAll(".gallery-slide");
 
+  function preloadGalleryAround(index){
+    for (var i = Math.max(0, index - 1); i <= Math.min(galSlideEls.length - 1, index + 7); i++){
+      var image = galSlideEls[i].querySelector("img");
+      if (image && !image.complete) image.loading = "eager";
+    }
+  }
+
+  function currentGalleryIndex(){
+    var step = galStep();
+    return step ? Math.round(galTrack.scrollLeft / step) : 0;
+  }
+
   function galStep(){
     return galSlideEls.length ? galSlideEls[0].getBoundingClientRect().width + GAL_GAP : 0;
   }
@@ -319,17 +460,32 @@
     return galTrack.scrollLeft + galTrack.clientWidth >= galTrack.scrollWidth - 4;
   }
   document.getElementById("galPrev").addEventListener("click", function(){
+    preloadGalleryAround(Math.max(0, currentGalleryIndex() - 1));
     galTrack.scrollBy({ left: -galStep(), behavior: "smooth" });
   });
   document.getElementById("galNext").addEventListener("click", function(){
-    if (galAtEnd()){ galTrack.scrollTo({ left: 0, behavior: "smooth" }); }
-    else{ galTrack.scrollBy({ left: galStep(), behavior: "smooth" }); }
+    var nextIndex = galAtEnd() ? 0 : currentGalleryIndex() + 1;
+    preloadGalleryAround(nextIndex);
+    if (galAtEnd()) galTrack.scrollTo({ left: 0, behavior: "smooth" });
+    else galTrack.scrollBy({ left: galStep(), behavior: "smooth" });
   });
+
+  var galleryPreloadFrame;
+  galTrack.addEventListener("scroll", function(){
+    cancelAnimationFrame(galleryPreloadFrame);
+    galleryPreloadFrame = requestAnimationFrame(function(){
+      preloadGalleryAround(currentGalleryIndex());
+    });
+  }, { passive: true });
+
+  preloadGalleryAround(0);
 
   if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches){
     setInterval(function(){
-      if (galAtEnd()){ galTrack.scrollTo({ left: 0, behavior: "smooth" }); }
-      else{ galTrack.scrollBy({ left: galStep(), behavior: "smooth" }); }
+      var nextIndex = galAtEnd() ? 0 : currentGalleryIndex() + 1;
+      preloadGalleryAround(nextIndex);
+      if (galAtEnd()) galTrack.scrollTo({ left: 0, behavior: "smooth" });
+      else galTrack.scrollBy({ left: galStep(), behavior: "smooth" });
     }, 4200);
   }
 

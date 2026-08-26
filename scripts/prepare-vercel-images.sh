@@ -12,7 +12,7 @@ fi
 
 mkdir -p "$output_root"
 
-find "$source_root" -type f \( -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.png' -o -iname '*.nef' \) -print0 |
+find "$source_root" -type f \( -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.png' -o -iname '*.nef' -o -iname '*.heic' -o -iname '*.heif' \) -print0 |
 while IFS= read -r -d '' source_file; do
   relative_path="${source_file#$source_root/}"
   source_extension="${source_file:e:l}"
@@ -30,19 +30,41 @@ while IFS= read -r -d '' source_file; do
       continue
     fi
     output_file="$output_root/${relative_path:r}.jpg"
+  elif [[ "$source_extension" == "heic" || "$source_extension" == "heif" ]]; then
+    output_file="$output_root/${relative_path:r}.jpg"
   else
     output_file="$output_root/$relative_path"
   fi
 
   mkdir -p "${output_file:h}"
 
-  if [[ -f "$output_file" && ! "$source_file" -nt "$output_file" ]]; then
+  if [[ -f "$output_file" && ! "$source_file" -nt "$output_file" && "$source_extension" != "nef" && "$source_extension" != "heic" && "$source_extension" != "heif" && "$relative_path" != "tribute-nanayaw-01.jpeg" ]]; then
     continue
   fi
 
   case "$source_extension" in
-    jpg|jpeg|nef)
-      sips -Z 960 -s format jpeg -s formatOptions 40 "$source_file" --out "$output_file" >/dev/null
+    nef|heic|heif)
+      preview_dir="$(mktemp -d)"
+      qlmanage -t -s 1200 -o "$preview_dir" "$source_file" >/dev/null
+      preview_file="$preview_dir/${source_file:t}.png"
+      if [[ ! -f "$preview_file" ]]; then
+        print -u2 "Quick Look could not prepare $source_file"
+        rm -rf -- "$preview_dir"
+        exit 1
+      fi
+      sips -Z 960 -s format jpeg -s formatOptions 48 "$preview_file" --out "$output_file" >/dev/null
+      rm -rf -- "$preview_dir"
+      ;;
+    jpg|jpeg)
+      if [[ "$relative_path" == "tribute-nanayaw-01.jpeg" ]]; then
+        preview_dir="$(mktemp -d)"
+        qlmanage -t -s 1200 -o "$preview_dir" "$source_file" >/dev/null
+        preview_file="$preview_dir/${source_file:t}.png"
+        sips -Z 960 -s format jpeg -s formatOptions 48 "$preview_file" --out "$output_file" >/dev/null
+        rm -rf -- "$preview_dir"
+      else
+        sips -Z 960 -s format jpeg -s formatOptions 40 "$source_file" --out "$output_file" >/dev/null
+      fi
       ;;
     png)
       sips -Z 960 "$source_file" --out "$output_file" >/dev/null
@@ -59,7 +81,7 @@ while IFS= read -r -d '' output_file; do
     has_source=true
   elif [[ "${output_file:e:l}" == "jpg" || "${output_file:e:l}" == "jpeg" ]]; then
     source_stem="$source_root/${relative_path:r}"
-    if [[ -f "$source_stem.NEF" || -f "$source_stem.nef" ]]; then
+    if [[ -f "$source_stem.NEF" || -f "$source_stem.nef" || -f "$source_stem.HEIC" || -f "$source_stem.heic" || -f "$source_stem.HEIF" || -f "$source_stem.heif" ]]; then
       has_source=true
     fi
   fi

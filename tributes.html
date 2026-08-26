@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tributes | Dr Isaac Bampoe Addo</title>
+<meta name="description" content="Tributes and reflections celebrating the life of Dr Isaac Bampoe Addo.">
+<link rel="icon" href="logo/logo_new.png" type="image/png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Source+Serif+4:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body class="tributes-page-body">
+
+<header class="site-header tribute-page-header">
+  <div class="header-inner">
+    <a href="index.html" class="brand">
+      <img src="logo/logo_new.png" alt="Dr Isaac Bampoe Addo">
+    </a>
+    <nav class="tribute-page-nav" aria-label="Tribute page navigation">
+      <a href="index.html" class="btn btn-ghost">Memorial</a>
+      <a href="https://forms.gle/51uhbtPHeEK7PiHK6" target="_blank" rel="noopener" class="btn btn-primary tribute-page-submit">Submit a Tribute</a>
+    </nav>
+  </div>
+</header>
+
+<main class="tributes-page-main">
+  <div class="container">
+    <header class="tributes-page-intro">
+      <span class="eyebrow">Words of Remembrance</span>
+      <h1>All Tributes</h1>
+      <p>Messages from family, friends, colleagues, and those whose lives were touched by Dr Isaac Bampoe Addo.</p>
+      <a href="https://forms.gle/51uhbtPHeEK7PiHK6" target="_blank" rel="noopener" class="btn btn-primary tribute-page-mobile-submit">Submit a Tribute</a>
+    </header>
+    <div class="tribute-library-grid" id="tributeLibrary"></div>
+  </div>
+</main>
+
+<div class="tribute-reader" id="tributeReader" role="dialog" aria-modal="true" aria-labelledby="tributeReaderName" hidden>
+  <div class="tribute-reader-backdrop" data-reader-close></div>
+  <article class="tribute-reader-panel">
+    <button type="button" class="tribute-reader-close" id="tributeReaderClose" aria-label="Close tribute">&times;</button>
+    <div class="tribute-reader-photo" id="tributeReaderPhoto"></div>
+    <div class="tribute-reader-copy">
+      <span class="quote-mark" aria-hidden="true">&ldquo;</span>
+      <div id="tributeReaderQuote"></div>
+      <h2 id="tributeReaderName"></h2>
+      <p class="tribute-reader-rel" id="tributeReaderRel"></p>
+    </div>
+  </article>
+</div>
+
+<footer>
+  <div class="container">
+    <div class="footer-bottom">
+      <span>&copy; 2026 In Loving Memory of Dr Isaac Bampoe Addo</span>
+      <a href="index.html">Return to Memorial</a>
+    </div>
+  </div>
+</footer>
+
+<script src="js/tributes.js"></script>
+<script src="js/tributes-page.js"></script>
+</body>
+</html>

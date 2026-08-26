@@ -147,15 +147,21 @@ Desktop navigation is a quiet Montserrat row on black with a silver underline re
 
 List every browser-compatible photograph in `js/pictures.js`, including photographs in nested folders, and generate a separate portrait-only list from their intrinsic dimensions. The hero begins with the designated final header, prioritizes all president-labelled photographs, and then continues through the remaining portrait list using two reusable image layers. President photographs remain eligible when landscape and use a full-image `contain` treatment so people are not cropped out. The lower gallery retains the complete archive. Expose previous and next header controls, and stop automatic movement for reduced-motion users. The image must fade to Memorial Black at its boundaries. Regenerate the manifest with `node scripts/generate-picture-manifest.mjs` whenever photographs are added or removed.
 
-Use `headerfinal.png` as the opening hero image. After it, photographs whose filenames use president markers such as `pres`, `prez`, or `prezzy`, together with the known president photograph `oresz.jpg`, appear before the rest of the archive in both photo sequences. The Legacy portrait alternates every seven seconds between `F18_5598.JPG` and `F18_9952.JPG`, fading quietly between them without changing the surrounding card.
+Use `headerfinal.png` as the opening hero image. Keep it fixed while the event announcement is open, then hold it for eight more seconds after the announcement closes. After that hold, photographs whose filenames use president markers such as `pres`, `prez`, or `prezzy`, together with the known president photograph `oresz.jpg`, appear before the remaining eligible header portraits. The lower gallery uses an independent priority group followed by a full-archive shuffle on every page load. The Legacy portrait alternates every seven seconds between `F18_5598.JPG` and `F18_9952.JPG`, fading quietly between them without changing the surrounding card.
 
 ### Mobile Gallery
 
-Preserve every gallery photograph's native aspect ratio below the desktop breakpoint. Landscape images remain wide and portrait images remain tall, with `object-fit: contain` preventing mobile crops. Desktop gallery tiles may use a consistent landscape frame for rhythm. In the mobile header only, portrait images use a centered `cover` crop so the image fills the frame without side edges; desktop portrait headers retain their reduced contained scale.
+Preserve every gallery photograph's native aspect ratio below the desktop breakpoint. Landscape images remain wide and portrait images remain tall, with `object-fit: contain` preventing mobile crops. Place the latest designated upload group at the beginning of the lower gallery, then randomize every remaining photograph independently of the header order on each page load. Eagerly load the opening group and progressively preload upcoming slides so automatic movement never reveals an unloaded black panel. Desktop gallery tiles may use a consistent landscape frame for rhythm. In the mobile header only, portrait images use a centered `cover` crop so the image fills the frame without side edges; desktop portrait headers retain their reduced contained scale.
 
 ### Tribute Slider
 
-One quotation occupies the reading area at a time. The panel uses Raised Black, a single quiet border, large serif quotation text, and 48px circular previous/next controls below on mobile.
+One tribute occupies the homepage reading area at a time and advances every six seconds. Each entry pairs a photograph with the tribute, using the contributor image when supplied and a labelled solo portrait of Dr Bampoe Addo as the fallback. On phones, the photograph sits above the tribute so the image and text each receive the full reading width. From the small-tablet breakpoint onward, the photograph sits to the left of the tribute in a balanced split panel. The panel uses Raised Black, a single quiet border, serif remembrance text, and 48px circular previous/next controls. A paired action row lets visitors submit a contribution or open the dedicated tributes page.
+
+The dedicated tributes page presents every unique published tribute without contact details. Each preview opens a focused, shareable page-like reader using the tribute slug in the URL. Reader layouts stack the photograph above the message on phones and use a side-by-side composition at tablet and desktop widths.
+
+### Event Announcement
+
+The remembrance-service announcement opens as a modal on each page visit. On phones, the flyer slider sits above the countdown and event details. From the tablet breakpoint onward, the flyer and information use a balanced side-by-side composition. The second supplied flyer is the opening slide, followed by the first supplied flyer. Modal chrome, countdown units, controls, and the location action remain monochrome even when the printed flyer artwork contains colour.
 
 ## Do's and Don'ts
 

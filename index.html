@@ -13,6 +13,53 @@
 </head>
 <body>
 
+<div class="event-modal" id="eventModal" role="dialog" aria-modal="true" aria-labelledby="eventModalTitle">
+  <div class="event-modal-backdrop" data-event-close></div>
+  <div class="event-modal-panel">
+    <button type="button" class="event-modal-close" id="eventModalClose" aria-label="Close remembrance service announcement">&times;</button>
+    <div class="event-flyer-slider" aria-label="Remembrance service flyers">
+      <div class="event-flyer-track" id="eventFlyerTrack">
+        <figure class="event-flyer-slide" style="background-image:url('event-assets/event-flyer-labour-hero.jpeg')">
+          <img src="event-assets/event-flyer-labour-hero.jpeg" alt="Remembrance service flyer for Dr Isaac Bampoe Addo">
+        </figure>
+        <figure class="event-flyer-slide" style="background-image:url('event-assets/event-flyer-remembrance.jpeg')">
+          <img src="event-assets/event-flyer-remembrance.jpeg" alt="Remembrance service programme flyer for Dr Isaac Bampoe Addo">
+        </figure>
+      </div>
+      <button type="button" class="event-flyer-control event-flyer-prev" id="eventFlyerPrev" aria-label="Previous flyer">&#8249;</button>
+      <button type="button" class="event-flyer-control event-flyer-next" id="eventFlyerNext" aria-label="Next flyer">&#8250;</button>
+      <div class="event-flyer-dots" id="eventFlyerDots" aria-label="Choose a flyer"></div>
+    </div>
+    <div class="event-modal-content">
+      <span class="eyebrow">Remembrance Service</span>
+      <h2 id="eventModalTitle">Join Us on Friday, 28 August</h2>
+      <p class="event-intro">We gather to honour a life of distinguished service and leadership.</p>
+      <div class="event-countdown" id="eventCountdown" aria-live="polite">
+        <div><strong id="countdownDays">00</strong><span>Days</span></div>
+        <div><strong id="countdownHours">00</strong><span>Hours</span></div>
+        <div><strong id="countdownMinutes">00</strong><span>Minutes</span></div>
+        <div><strong id="countdownSeconds">00</strong><span>Seconds</span></div>
+      </div>
+      <div class="event-details">
+        <div>
+          <span>Date</span>
+          <strong>Friday, 28 August 2026</strong>
+        </div>
+        <div>
+          <span>Time</span>
+          <strong>8:30 am</strong>
+        </div>
+        <div>
+          <span>Venue</span>
+          <strong>Winners Chapel International</strong>
+          <p>Dadeban Loop, Accra North Industrial Area</p>
+        </div>
+      </div>
+      <a class="btn btn-primary event-location" href="https://maps.app.goo.gl/5EYhXukUKszXT8La8" target="_blank" rel="noopener">View Location</a>
+    </div>
+  </div>
+</div>
+
 <header class="site-header" id="siteHeader">
   <div class="header-inner">
     <a href="#top" class="brand">
@@ -72,7 +119,10 @@
 
     <div class="tributes-cta reveal">
       <p>Your memory of Dr Bampoe Addo deserves a place here.</p>
-      <a href="https://forms.gle/51uhbtPHeEK7PiHK6" target="_blank" rel="noopener" class="btn btn-ghost">Submit Your Tribute</a>
+      <div class="tributes-cta-actions">
+        <a href="https://forms.gle/51uhbtPHeEK7PiHK6" target="_blank" rel="noopener" class="btn btn-ghost">Submit Your Tribute</a>
+        <a href="tributes.html" class="btn btn-ghost">View All Tributes</a>
+      </div>
     </div>
   </div>
 </section>
@@ -220,6 +270,7 @@
 </footer>
 
 <script src="js/pictures.js"></script>
+<script src="js/tributes.js"></script>
 <script src="js/script.js"></script>
 </body>
 </html>
