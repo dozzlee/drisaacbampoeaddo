@@ -51,7 +51,6 @@
     "web-pictures/IMG_0800.jpg",
     "web-pictures/IMG_0799.jpg",
     "web-pictures/IMG_0798.jpg",
-    "web-pictures/IMG_0797.jpg",
     "web-pictures/IMG_0796.jpg",
     "web-pictures/cd45616d-83c0-4f92-b4a1-d3568850f630.JPG"
   ].filter(function(src){ return galleryFiles.indexOf(src) !== -1; });
@@ -376,12 +375,32 @@
   document.getElementById("tribNext").addEventListener("click", function(){ goToTribute(tribIndex + 1); });
 
   var tribAuto;
+  var tribHoldActive = false;
   function startTribAuto(){
-    if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches){
-      tribAuto = setInterval(function(){ goToTribute(tribIndex + 1); }, 6000);
+    if (!tribHoldActive && !window.matchMedia("(prefers-reduced-motion: reduce)").matches){
+      tribAuto = setInterval(function(){ goToTribute(tribIndex + 1); }, 50000);
     }
   }
   function resetTribAuto(){ clearInterval(tribAuto); startTribAuto(); }
+  function pauseTributes(){
+    tribHoldActive = true;
+    clearInterval(tribAuto);
+    tribSlides.classList.add("is-held");
+  }
+  function resumeTributes(){
+    if (!tribHoldActive) return;
+    tribHoldActive = false;
+    tribSlides.classList.remove("is-held");
+    startTribAuto();
+  }
+  tribSlides.addEventListener("pointerdown", function(event){
+    if (event.pointerType === "mouse" && event.button !== 0) return;
+    pauseTributes();
+    if (tribSlides.setPointerCapture) tribSlides.setPointerCapture(event.pointerId);
+  });
+  tribSlides.addEventListener("pointerup", resumeTributes);
+  tribSlides.addEventListener("pointercancel", resumeTributes);
+  tribSlides.addEventListener("lostpointercapture", resumeTributes);
   startTribAuto();
   renderTribute();
 

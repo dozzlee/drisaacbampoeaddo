@@ -32,9 +32,20 @@
     readerRel.textContent = tribute.rel;
     readerRel.hidden = !tribute.rel;
     reader.hidden = false;
+    var panel = reader.querySelector(".tribute-reader-panel");
+    if (panel) panel.scrollTop = 0;
+    var copy = reader.querySelector(".tribute-reader-copy");
+    if (copy) copy.scrollTop = 0;
+    reader.scrollTop = 0;
     document.body.classList.add("tribute-reader-open");
     if (updateHash) history.replaceState(null, "", "#" + tribute.slug);
-    readerClose.focus();
+    if (typeof readerClose.focus === "function") {
+      try {
+        readerClose.focus({ preventScroll: true });
+      } catch (e) {
+        readerClose.focus();
+      }
+    }
   }
 
   function closeTribute(updateHash){
