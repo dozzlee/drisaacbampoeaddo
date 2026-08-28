@@ -159,9 +159,9 @@ One tribute occupies the homepage reading area at a time and advances every fift
 
 The dedicated tributes page presents every unique published tribute without contact details. Each preview opens a focused, shareable page-like reader using the tribute slug in the URL. Reader layouts stack the photograph above the message on phones and use a side-by-side composition at tablet and desktop widths.
 
-### Event Announcement
+### Remembrance Service Booklet
 
-The remembrance-service announcement opens as a modal on each page visit. On phones, the flyer slider sits above the countdown and event details. From the tablet breakpoint onward, the flyer and information use a balanced side-by-side composition. The second supplied flyer is the opening slide, followed by the first supplied flyer. Modal chrome, countdown units, controls, and the location action remain monochrome even when the printed flyer artwork contains colour.
+The remembrance-service booklet opens as a modal on each page visit. On phones, the page viewer sits above the service introduction and actions. From the tablet breakpoint onward, the booklet and information use a balanced side-by-side composition. Open on the order of service, followed by the hymns page, and keep the complete original PDF available through a clear download action. A second action opens the YouTube Live broadcast. Modal chrome, navigation, and actions remain monochrome even when the supplied booklet artwork contains colour.
 
 ## Do's and Don'ts
 

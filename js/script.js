@@ -59,82 +59,66 @@
     return !featuredGallerySet.has(src);
   })));
 
-  /* ---------------- Remembrance service announcement ---------------- */
+  /* ---------------- Remembrance service booklet ---------------- */
   var eventModal = document.getElementById("eventModal");
   var eventModalClose = document.getElementById("eventModalClose");
-  var eventFlyerTrack = document.getElementById("eventFlyerTrack");
-  var eventFlyerDots = document.getElementById("eventFlyerDots");
-  var eventFlyerIndex = 0;
-  var eventFlyerCount = eventFlyerTrack ? eventFlyerTrack.children.length : 0;
-  var eventFlyerTimer;
-  var eventCountdownTimer;
-  var eventTarget = new Date("2026-08-28T08:30:00Z").getTime();
+  var eventBookletTrack = document.getElementById("eventBookletTrack");
+  var eventBookletDots = document.getElementById("eventBookletDots");
+  var eventBookletCountLabel = document.getElementById("eventBookletCount");
+  var eventBookletIndex = 0;
+  var eventBookletCount = eventBookletTrack ? eventBookletTrack.children.length : 0;
+  var eventBookletPointerStart = null;
   var lastFocusedElement = document.activeElement;
 
-  function showEventFlyer(index){
-    if (!eventFlyerCount) return;
-    eventFlyerIndex = (index + eventFlyerCount) % eventFlyerCount;
-    eventFlyerTrack.style.transform = "translateX(-" + (eventFlyerIndex * 100) + "%)";
-    eventFlyerDots.querySelectorAll("button").forEach(function(dot, dotIndex){
-      dot.classList.toggle("active", dotIndex === eventFlyerIndex);
-      dot.setAttribute("aria-current", dotIndex === eventFlyerIndex ? "true" : "false");
+  function showEventBookletPage(index){
+    if (!eventBookletCount) return;
+    eventBookletIndex = (index + eventBookletCount) % eventBookletCount;
+    eventBookletTrack.style.transform = "translateX(-" + (eventBookletIndex * 100) + "%)";
+    eventBookletDots.querySelectorAll("button").forEach(function(dot, dotIndex){
+      dot.classList.toggle("active", dotIndex === eventBookletIndex);
+      dot.setAttribute("aria-current", dotIndex === eventBookletIndex ? "page" : "false");
     });
-  }
-
-  function restartEventFlyerTimer(){
-    clearInterval(eventFlyerTimer);
-    if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches){
-      eventFlyerTimer = setInterval(function(){ showEventFlyer(eventFlyerIndex + 1); }, 5500);
-    }
+    eventBookletCountLabel.textContent = "Page " + (eventBookletIndex + 1) + " of " + eventBookletCount;
   }
 
   function closeEventModal(){
     eventModal.hidden = true;
     document.body.classList.remove("event-modal-open");
-    clearInterval(eventFlyerTimer);
-    clearInterval(eventCountdownTimer);
     window.dispatchEvent(new CustomEvent("memorial:event-closed"));
     if (lastFocusedElement && typeof lastFocusedElement.focus === "function") lastFocusedElement.focus();
   }
 
-  function setCountdownValue(id, value){
-    document.getElementById(id).textContent = String(Math.max(0, value)).padStart(2, "0");
-  }
-
-  function updateEventCountdown(){
-    var remaining = Math.max(0, eventTarget - Date.now());
-    var totalSeconds = Math.floor(remaining / 1000);
-    var days = Math.floor(totalSeconds / 86400);
-    var hours = Math.floor((totalSeconds % 86400) / 3600);
-    var minutes = Math.floor((totalSeconds % 3600) / 60);
-    var seconds = totalSeconds % 60;
-    setCountdownValue("countdownDays", days);
-    setCountdownValue("countdownHours", hours);
-    setCountdownValue("countdownMinutes", minutes);
-    setCountdownValue("countdownSeconds", seconds);
-    if (!remaining) clearInterval(eventCountdownTimer);
-  }
-
   if (eventModal){
     document.body.classList.add("event-modal-open");
-    Array.from(eventFlyerTrack.children).forEach(function(_, index){
+    Array.from(eventBookletTrack.children).forEach(function(_, index){
       var dot = document.createElement("button");
       dot.type = "button";
-      dot.setAttribute("aria-label", "View flyer " + (index + 1));
-      dot.addEventListener("click", function(){ showEventFlyer(index); restartEventFlyerTimer(); });
-      eventFlyerDots.appendChild(dot);
+      dot.setAttribute("aria-label", "View booklet page " + (index + 1));
+      dot.addEventListener("click", function(){ showEventBookletPage(index); });
+      eventBookletDots.appendChild(dot);
     });
-    document.getElementById("eventFlyerPrev").addEventListener("click", function(){ showEventFlyer(eventFlyerIndex - 1); restartEventFlyerTimer(); });
-    document.getElementById("eventFlyerNext").addEventListener("click", function(){ showEventFlyer(eventFlyerIndex + 1); restartEventFlyerTimer(); });
+    document.getElementById("eventBookletPrev").addEventListener("click", function(){ showEventBookletPage(eventBookletIndex - 1); });
+    document.getElementById("eventBookletNext").addEventListener("click", function(){ showEventBookletPage(eventBookletIndex + 1); });
+    eventBookletTrack.addEventListener("pointerdown", function(event){
+      if (event.pointerType === "mouse" && event.button !== 0) return;
+      eventBookletPointerStart = event.clientX;
+    });
+    eventBookletTrack.addEventListener("pointerup", function(event){
+      if (eventBookletPointerStart === null) return;
+      var distance = event.clientX - eventBookletPointerStart;
+      eventBookletPointerStart = null;
+      if (Math.abs(distance) < 42) return;
+      showEventBookletPage(eventBookletIndex + (distance < 0 ? 1 : -1));
+    });
+    eventBookletTrack.addEventListener("pointercancel", function(){ eventBookletPointerStart = null; });
     eventModalClose.addEventListener("click", closeEventModal);
     eventModal.querySelector("[data-event-close]").addEventListener("click", closeEventModal);
     document.addEventListener("keydown", function(event){
       if (event.key === "Escape" && !eventModal.hidden) closeEventModal();
+      if (event.key === "ArrowLeft" && !eventModal.hidden) showEventBookletPage(eventBookletIndex - 1);
+      if (event.key === "ArrowRight" && !eventModal.hidden) showEventBookletPage(eventBookletIndex + 1);
     });
-    showEventFlyer(0);
-    restartEventFlyerTimer();
-    updateEventCountdown();
-    eventCountdownTimer = setInterval(updateEventCountdown, 1000);
+    showEventBookletPage(0);
     setTimeout(function(){ eventModalClose.focus(); }, 0);
   }
 

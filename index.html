@@ -16,46 +16,36 @@
 <div class="event-modal" id="eventModal" role="dialog" aria-modal="true" aria-labelledby="eventModalTitle">
   <div class="event-modal-backdrop" data-event-close></div>
   <div class="event-modal-panel">
-    <button type="button" class="event-modal-close" id="eventModalClose" aria-label="Close remembrance service announcement">&times;</button>
-    <div class="event-flyer-slider" aria-label="Remembrance service flyers">
-      <div class="event-flyer-track" id="eventFlyerTrack">
-        <figure class="event-flyer-slide" style="background-image:url('event-assets/event-flyer-labour-hero.jpeg')">
-          <img src="event-assets/event-flyer-labour-hero.jpeg" alt="Remembrance service flyer for Dr Isaac Bampoe Addo">
+    <button type="button" class="event-modal-close" id="eventModalClose" aria-label="Close remembrance service booklet">&times;</button>
+    <div class="event-booklet-viewer" aria-label="Remembrance service booklet preview">
+      <div class="event-booklet-track" id="eventBookletTrack">
+        <figure class="event-booklet-page">
+          <img src="booklet-assets/order-of-service.jpg" alt="Order of service for the remembrance service of Isaac Bampoe Addo">
         </figure>
-        <figure class="event-flyer-slide" style="background-image:url('event-assets/event-flyer-remembrance.jpeg')">
-          <img src="event-assets/event-flyer-remembrance.jpeg" alt="Remembrance service programme flyer for Dr Isaac Bampoe Addo">
+        <figure class="event-booklet-page">
+          <img src="booklet-assets/hymns.jpg" alt="Hymns for the remembrance service of Isaac Bampoe Addo" loading="lazy">
         </figure>
       </div>
-      <button type="button" class="event-flyer-control event-flyer-prev" id="eventFlyerPrev" aria-label="Previous flyer">&#8249;</button>
-      <button type="button" class="event-flyer-control event-flyer-next" id="eventFlyerNext" aria-label="Next flyer">&#8250;</button>
-      <div class="event-flyer-dots" id="eventFlyerDots" aria-label="Choose a flyer"></div>
+      <button type="button" class="event-booklet-control event-booklet-prev" id="eventBookletPrev" aria-label="Previous booklet page">&#8249;</button>
+      <button type="button" class="event-booklet-control event-booklet-next" id="eventBookletNext" aria-label="Next booklet page">&#8250;</button>
+      <div class="event-booklet-navigation">
+        <span id="eventBookletCount" aria-live="polite">Page 1 of 2</span>
+        <div class="event-booklet-dots" id="eventBookletDots" aria-label="Choose a booklet page"></div>
+      </div>
     </div>
     <div class="event-modal-content">
-      <span class="eyebrow">Remembrance Service</span>
-      <h2 id="eventModalTitle">Join Us on Friday, 28 August</h2>
-      <p class="event-intro">We gather to honour a life of distinguished service and leadership.</p>
-      <div class="event-countdown" id="eventCountdown" aria-live="polite">
-        <div><strong id="countdownDays">00</strong><span>Days</span></div>
-        <div><strong id="countdownHours">00</strong><span>Hours</span></div>
-        <div><strong id="countdownMinutes">00</strong><span>Minutes</span></div>
-        <div><strong id="countdownSeconds">00</strong><span>Seconds</span></div>
+      <span class="eyebrow">One Week Remembrance</span>
+      <h2 id="eventModalTitle">Service Booklet</h2>
+      <p class="event-intro">Read the order of service and hymns prepared in loving memory of Dr Isaac Bampoe Addo.</p>
+      <div class="event-live">
+        <span>Live Broadcast</span>
+        <strong>Join the remembrance service on YouTube</strong>
+        <p>Open the live broadcast in a new window, or download the complete booklet to keep.</p>
       </div>
-      <div class="event-details">
-        <div>
-          <span>Date</span>
-          <strong>Friday, 28 August 2026</strong>
-        </div>
-        <div>
-          <span>Time</span>
-          <strong>8:30 am</strong>
-        </div>
-        <div>
-          <span>Venue</span>
-          <strong>Winners Chapel International</strong>
-          <p>Dadeban Loop, Accra North Industrial Area</p>
-        </div>
+      <div class="event-actions">
+        <a class="btn btn-primary" href="https://youtube.com/live/J-m_K9_-wsY?feature=share" target="_blank" rel="noopener">Watch Live on YouTube</a>
+        <a class="btn btn-outline" href="booklet-assets/one-week-remembrance-service.pdf" download>Download Booklet</a>
       </div>
-      <a class="btn btn-primary event-location" href="https://maps.app.goo.gl/5EYhXukUKszXT8La8" target="_blank" rel="noopener">View Location</a>
     </div>
   </div>
 </div>
