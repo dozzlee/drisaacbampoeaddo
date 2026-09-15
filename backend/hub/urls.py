@@ -8,4 +8,9 @@ urlpatterns = [
     path("tributes/files/<uuid:attachment_id>/edit", views.edit_tribute_file),
     path("tributes/files/<uuid:attachment_id>", views.delete_tribute_file),
     path("tributes/<int:party_id>/files", views.upload_tribute_file),
+    path("media", views.media_assets),
+    path("media/<uuid:asset_id>/edit", views.edit_media_asset),
+    path("media/<uuid:asset_id>/preview", views.preview_media_asset),
+    path("media/<uuid:asset_id>/download", views.download_media_asset),
+    path("media/<uuid:asset_id>", views.delete_media_asset),
 ]

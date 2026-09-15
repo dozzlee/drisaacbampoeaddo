@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="teams.css?v=20260915-4">
+  <link rel="stylesheet" href="teams.css?v=20260915-5">
 </head>
 <body>
   <section class="gate" id="accessGate" aria-labelledby="gateTitle">
@@ -42,7 +42,7 @@
       <div class="brand"><span>OA</span><strong>Oko and Atteh</strong></div>
       <nav class="primary-nav" id="primaryNav" aria-label="Teams Hub">
         <button class="active" data-view="tasks"><span class="nav-icon">✓</span><span><strong>Tasks</strong><small>Master plan and calendar</small></span></button>
-        <button data-view="media"><span class="nav-icon">▧</span><span><strong>Media</strong><small>Approved partner files</small></span></button>
+        <button data-view="media"><span class="nav-icon">▧</span><span><strong>Media and Documents</strong><small>Central file library</small></span></button>
         <button data-view="tributes"><span class="nav-icon">✦</span><span><strong>Tributes</strong><small>Invitations and files</small></span></button>
         <button data-view="access" id="accessNav"><span class="nav-icon">⌾</span><span><strong>Access control</strong><small>Admin only</small></span></button>
       </nav>
@@ -72,10 +72,12 @@
       </section>
 
       <section class="view" id="mediaView" data-view-panel="media" hidden>
-        <div class="page-heading media-heading"><div><p class="eyebrow">For media partners</p><h2>Media library</h2><p>Approved photographs, identity assets, programmes and broadcast material, ready to view or download.</p></div><label class="primary-button file-button admin-action">+ Upload media<input id="mediaUpload" type="file" accept="image/*,.pdf,.doc,.docx" multiple></label></div>
-        <div class="media-overview"><article><span>Total assets</span><strong id="mediaCount">0</strong></article><article><span>Shared with media</span><strong id="mediaSharedCount">0</strong></article><article><span>Admin only</span><strong id="mediaPrivateCount">0</strong></article></div>
-        <div class="library-toolbar card"><div class="segmented" id="mediaFilters"><button class="active" data-filter="all">All files</button><button data-filter="photograph">Photos</button><button data-filter="document">Documents</button><button data-filter="identity">Identity</button></div><label class="media-search"><span class="sr-only">Search media files</span><input id="mediaSearch" type="search" placeholder="Search media files"></label></div>
-        <div class="media-grid" id="mediaGrid"></div>
+        <div class="page-heading media-heading"><div><p class="eyebrow">Central file library</p><h2>Media and Documents</h2><p>Upload, classify, preview and share approved photographs, videos, audio and working documents.</p></div><button class="primary-button admin-action" id="addMedia" type="button">+ Add Media or Document</button></div>
+        <div class="media-overview"><article><span>Total files</span><strong id="mediaCount">0</strong></article><article class="media-stat"><span>Media</span><strong id="mediaTypeCount">0</strong></article><article class="document-stat"><span>Documents</span><strong id="documentTypeCount">0</strong></article><article><span>Shared</span><strong id="mediaSharedCount">0</strong></article></div>
+        <button class="secondary-button mobile-filter-toggle" id="mediaFilterToggle" type="button" aria-expanded="false">Filters and sorting</button>
+        <div class="library-toolbar card" id="mediaToolbar"><div class="segmented" id="mediaFilters"><button class="active" data-filter="all">All files</button><button data-filter="media">Media</button><button data-filter="document">Documents</button></div><label class="media-search"><span class="sr-only">Search files</span><input id="mediaSearch" type="search" placeholder="Search titles, labels or categories"></label><label><span class="sr-only">Filter by category</span><select id="mediaCategoryFilter"><option value="all">All categories</option></select></label><label><span class="sr-only">Sort files</span><select id="mediaSort"><option value="newest">Newest first</option><option value="title">Title A–Z</option><option value="category">Category A–Z</option></select></label><div class="view-options" id="mediaViewOptions" aria-label="Library view"><button class="active" data-layout="cards" aria-label="Large cards">▦</button><button data-layout="compact" aria-label="Compact grid">▥</button><button data-layout="list" aria-label="List view">☷</button></div></div>
+        <div class="media-loading" id="mediaLoading">Loading Media and Documents…</div>
+        <div class="media-grid" id="mediaGrid" data-layout="cards"></div>
       </section>
 
       <section class="view" id="tributesView" data-view-panel="tributes" hidden>
@@ -99,7 +101,8 @@
   </div>
 
   <dialog class="modal" id="recordModal"><form method="dialog" id="recordForm"><div class="modal-head"><div><p class="eyebrow" id="modalEyebrow">New record</p><h2 id="modalTitle">Add task</h2></div><button value="cancel" aria-label="Close">×</button></div><div id="modalFields"></div><menu><button value="cancel" class="secondary-button">Cancel</button><button value="save" class="primary-button" id="modalSave">Save</button></menu></form></dialog>
+  <dialog class="modal media-modal" id="mediaModal"><form id="mediaForm"><div class="modal-head"><div><p class="eyebrow">Media and Documents</p><h2 id="mediaModalTitle">Add Media or Document</h2></div><button type="button" id="closeMediaModal" aria-label="Close">×</button></div><div id="mediaDetailsStep"><div class="form-grid"><label>Title<input name="title" required></label><label>File type<select name="assetType" required><option value="media">Media</option><option value="document">Document</option></select></label></div><label>Category<select name="category" id="mediaCategory" required></select></label><label>Short description<textarea name="description" required></textarea></label><label>File <small id="mediaFileHelp">Required</small><input name="file" type="file" accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv"></label><details><summary>More details</summary><div class="form-grid"><label>Labels <small>comma-separated</small><input name="labels" placeholder="approved, portrait, print"></label><label>Date created<input name="dateCreated" type="date"></label><label>Event or activity<input name="eventActivity"></label><label>Responsible committee<input name="responsibleCommittee"></label><label>Uploaded by<input name="uploadedBy"></label><label>Owner or contact<input name="ownerContact"></label><label>Phone<input name="phone" type="tel"></label><label>Confidentiality<select name="confidentiality"><option>Internal</option><option>Committee</option><option>Media partners</option><option>Public</option></select></label><label>Version<input name="version" value="1.0"></label><label>Document status<select name="status"><option value="draft">Draft</option><option value="review">Under review</option><option value="approved">Approved</option><option value="archived">Archived</option></select></label></div><label>Notes<textarea name="notes"></textarea></label><label class="check-label"><input name="available" type="checkbox"> Make available to media partners</label></details></div><section class="upload-preview" id="mediaPreviewStep" hidden><div id="mediaUploadPreview"></div></section><p class="form-help" id="mediaFormMessage" aria-live="polite"></p><menu><button type="button" class="secondary-button" id="mediaBack" hidden>Back</button><button type="button" class="secondary-button" id="cancelMedia">Cancel</button><button type="button" class="primary-button" id="mediaPreviewButton">Preview</button><button type="submit" class="primary-button" id="mediaConfirm" hidden>Confirm upload</button></menu></form></dialog>
   <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
-  <script src="teams.js?v=20260915-10"></script>
+  <script src="teams.js?v=20260915-11"></script>
 </body>
 </html>

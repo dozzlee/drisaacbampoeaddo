@@ -3,3 +3,5 @@
 .playwright-cli/
 output/
 pictures/
+node_modules/
+.next/

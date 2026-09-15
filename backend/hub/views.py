@@ -2,11 +2,11 @@ import json
 import logging
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, connection, transaction
-from django.http import FileResponse, JsonResponse
+from django.http import FileResponse, JsonResponse, HttpResponseRedirect
 from django.shortcuts import get_object_or_404
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
-from .models import TributeAttachment, TributeParty, UserProfile, normalize_phone
+from .models import MediaAsset, TributeAttachment, TributeParty, UserProfile, normalize_phone
 
 logger = logging.getLogger(__name__)
 
@@ -144,3 +144,174 @@ def download_tribute_file(request, attachment_id):
     except (FileNotFoundError, OSError):
         logger.warning("tribute_file_missing id=%s", item.id)
         return JsonResponse({"error": "The stored file is unavailable."}, status=404)
+
+ALLOWED_LIBRARY_TYPES = {
+    "image/jpeg", "image/png", "image/webp", "image/gif", "image/svg+xml",
+    "video/mp4", "video/quicktime", "video/webm", "audio/mpeg", "audio/wav", "audio/mp4",
+    "application/pdf", "application/msword",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "application/vnd.ms-excel", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "application/vnd.ms-powerpoint", "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    "text/plain", "text/csv",
+}
+
+def request_role(request):
+    return request.headers.get("X-Teams-Role", "user").lower()
+
+def admin_required(request):
+    if request_role(request) != "admin":
+        return JsonResponse({"error": "Administrator access is required."}, status=403)
+    return None
+
+def validate_library_upload(uploaded):
+    if uploaded.content_type not in ALLOWED_LIBRARY_TYPES:
+        return JsonResponse({"error": "This media or document type is not supported."}, status=400)
+    if uploaded.size > 100 * 1024 * 1024:
+        return JsonResponse({"error": "Files must be smaller than 100 MB."}, status=413)
+    return None
+
+def media_asset_json(item):
+    has_file = bool(item.file)
+    preview_href = f"/api/media/{item.id}/preview" if has_file else item.external_url
+    download_href = f"/api/media/{item.id}/download" if has_file else item.external_url
+    return {
+        "id": str(item.id), "title": item.title, "assetType": item.asset_type,
+        "category": item.category, "description": item.description,
+        "originalName": item.original_name, "mimeType": item.mime_type,
+        "size": item.size_bytes, "labels": item.labels, "dateCreated": item.date_created.isoformat() if item.date_created else "",
+        "eventActivity": item.event_activity, "responsibleCommittee": item.responsible_committee,
+        "uploadedBy": item.uploaded_by_name, "ownerContact": item.owner_contact, "phone": item.phone,
+        "confidentiality": item.confidentiality, "version": item.version,
+        "status": item.document_status, "notes": item.notes, "available": item.available_to_media,
+        "previewHref": preview_href, "downloadHref": download_href,
+        "uploadedAt": item.uploaded_at.isoformat(), "updatedAt": item.updated_at.isoformat(),
+        "missing": not has_file and not bool(item.external_url),
+    }
+
+def split_labels(value):
+    return [label.strip() for label in str(value or "").split(",") if label.strip()][:20]
+
+def apply_media_fields(item, data):
+    item.title = str(data.get("title", item.title)).strip()
+    item.asset_type = str(data.get("assetType", item.asset_type)).strip().lower()
+    item.category = str(data.get("category", item.category)).strip()
+    item.description = str(data.get("description", item.description)).strip()
+    item.labels = split_labels(data.get("labels", ",".join(item.labels)))
+    if "dateCreated" in data:
+        item.date_created = str(data.get("dateCreated", "")).strip() or None
+    item.event_activity = str(data.get("eventActivity", item.event_activity)).strip()
+    item.responsible_committee = str(data.get("responsibleCommittee", item.responsible_committee)).strip()
+    item.uploaded_by_name = str(data.get("uploadedBy", item.uploaded_by_name)).strip()
+    item.owner_contact = str(data.get("ownerContact", item.owner_contact)).strip()
+    item.phone = str(data.get("phone", item.phone)).strip()
+    item.confidentiality = str(data.get("confidentiality", item.confidentiality or "Internal")).strip()
+    item.version = str(data.get("version", item.version or "1.0")).strip()
+    item.document_status = str(data.get("status", item.document_status or "draft")).strip().lower()
+    item.notes = str(data.get("notes", item.notes)).strip()
+    if "available" in data:
+        item.available_to_media = str(data.get("available")).lower() in {"true", "1", "yes", "on"}
+
+def validate_media_fields(item):
+    if not item.title or not item.category or not item.description:
+        return "Title, category and description are required."
+    if item.asset_type not in MediaAsset.AssetType.values:
+        return "Choose Media or Document as the file type."
+    if item.document_status not in MediaAsset.Status.values:
+        return "Choose a valid document status."
+    return None
+
+@csrf_exempt
+@require_http_methods(["GET", "POST"])
+def media_assets(request):
+    if request.method == "GET":
+        records = MediaAsset.objects.all()
+        if request_role(request) == "media":
+            records = records.filter(available_to_media=True).exclude(document_status=MediaAsset.Status.ARCHIVED)
+        return JsonResponse({"items": [media_asset_json(item) for item in records]})
+    denied = admin_required(request)
+    if denied: return denied
+    uploaded = request.FILES.get("file")
+    if not uploaded: return JsonResponse({"error": "Choose a file to upload."}, status=400)
+    upload_error = validate_library_upload(uploaded)
+    if upload_error: return upload_error
+    item = MediaAsset(original_name=uploaded.name, mime_type=uploaded.content_type, size_bytes=uploaded.size)
+    apply_media_fields(item, request.POST)
+    field_error = validate_media_fields(item)
+    if field_error: return JsonResponse({"error": field_error}, status=400)
+    try:
+        with transaction.atomic():
+            item.file = uploaded
+            item.save()
+        logger.info("media_asset_created id=%s size=%s", item.id, uploaded.size)
+        return JsonResponse({"item": media_asset_json(item)}, status=201)
+    except Exception:
+        logger.exception("media_asset_create_failed")
+        return JsonResponse({"error": "The file could not be saved."}, status=500)
+
+@csrf_exempt
+@require_POST
+def edit_media_asset(request, asset_id):
+    denied = admin_required(request)
+    if denied: return denied
+    item = get_object_or_404(MediaAsset, pk=asset_id)
+    replacement = request.FILES.get("file")
+    if replacement:
+        upload_error = validate_library_upload(replacement)
+        if upload_error: return upload_error
+    apply_media_fields(item, request.POST)
+    field_error = validate_media_fields(item)
+    if field_error: return JsonResponse({"error": field_error}, status=400)
+    old_storage = item.file.storage if item.file else None
+    old_path = item.file.name if item.file else ""
+    try:
+        with transaction.atomic():
+            if replacement:
+                item.file = replacement
+                item.external_url = ""
+                item.original_name = replacement.name
+                item.mime_type = replacement.content_type
+                item.size_bytes = replacement.size
+            item.save()
+            if replacement and old_storage and old_path and old_path != item.file.name:
+                transaction.on_commit(lambda: old_storage.delete(old_path))
+        logger.info("media_asset_updated id=%s replaced=%s", item.id, bool(replacement))
+        return JsonResponse({"item": media_asset_json(item)})
+    except Exception:
+        logger.exception("media_asset_update_failed id=%s", item.id)
+        return JsonResponse({"error": "The media record could not be updated."}, status=500)
+
+@csrf_exempt
+@require_http_methods(["DELETE"])
+def delete_media_asset(request, asset_id):
+    denied = admin_required(request)
+    if denied: return denied
+    item = get_object_or_404(MediaAsset, pk=asset_id)
+    storage = item.file.storage if item.file else None
+    path = item.file.name if item.file else ""
+    try:
+        with transaction.atomic():
+            item.delete()
+            if storage and path: transaction.on_commit(lambda: storage.delete(path))
+        logger.info("media_asset_deleted id=%s", asset_id)
+        return JsonResponse({"deleted": True, "id": str(asset_id)})
+    except Exception:
+        logger.exception("media_asset_delete_failed id=%s", asset_id)
+        return JsonResponse({"error": "The media record could not be removed."}, status=500)
+
+def media_file_response(item, attachment):
+    if item.file:
+        try:
+            return FileResponse(item.file.open("rb"), as_attachment=attachment, filename=item.original_name, content_type=item.mime_type)
+        except (FileNotFoundError, OSError):
+            logger.warning("media_asset_file_missing id=%s", item.id)
+            return JsonResponse({"error": "The stored file is unavailable."}, status=404)
+    if item.external_url: return HttpResponseRedirect(item.external_url)
+    return JsonResponse({"error": "The stored file is unavailable."}, status=404)
+
+@require_GET
+def preview_media_asset(request, asset_id):
+    return media_file_response(get_object_or_404(MediaAsset, pk=asset_id), False)
+
+@require_GET
+def download_media_asset(request, asset_id):
+    return media_file_response(get_object_or_404(MediaAsset, pk=asset_id), True)

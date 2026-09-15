@@ -48,3 +48,45 @@ class TributeAttachment(models.Model):
     uploaded_by = models.ForeignKey(UserProfile, null=True, blank=True, on_delete=models.SET_NULL)
     uploaded_at = models.DateTimeField(auto_now_add=True)
     class Meta: ordering = ["uploaded_at"]
+
+class MediaAsset(models.Model):
+    class AssetType(models.TextChoices):
+        MEDIA = "media", "Media"
+        DOCUMENT = "document", "Document"
+
+    class Status(models.TextChoices):
+        DRAFT = "draft", "Draft"
+        REVIEW = "review", "Under review"
+        APPROVED = "approved", "Approved"
+        ARCHIVED = "archived", "Archived"
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    title = models.CharField(max_length=255)
+    asset_type = models.CharField(max_length=12, choices=AssetType.choices)
+    category = models.CharField(max_length=160)
+    description = models.TextField()
+    file = models.FileField(upload_to="library/%Y/%m/", blank=True)
+    external_url = models.CharField(max_length=500, blank=True)
+    original_name = models.CharField(max_length=255)
+    mime_type = models.CharField(max_length=160)
+    size_bytes = models.PositiveBigIntegerField(default=0)
+    labels = models.JSONField(default=list, blank=True)
+    date_created = models.DateField(null=True, blank=True)
+    event_activity = models.CharField(max_length=160, blank=True)
+    responsible_committee = models.CharField(max_length=160, blank=True)
+    uploaded_by_name = models.CharField(max_length=160, blank=True)
+    owner_contact = models.CharField(max_length=160, blank=True)
+    phone = models.CharField(max_length=32, blank=True)
+    confidentiality = models.CharField(max_length=80, default="Internal")
+    version = models.CharField(max_length=40, default="1.0")
+    document_status = models.CharField(max_length=20, choices=Status.choices, default=Status.DRAFT)
+    notes = models.TextField(blank=True)
+    available_to_media = models.BooleanField(default=False)
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-uploaded_at"]
+
+    def __str__(self):
+        return self.title
