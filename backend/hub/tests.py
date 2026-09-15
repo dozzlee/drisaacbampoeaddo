@@ -63,3 +63,36 @@ class HubFlowTests(TestCase):
         response = self.client.get(record["href"])
         self.assertEqual(response.status_code, 404)
         self.assertEqual(response.json()["error"], "The stored file is unavailable.")
+
+    def test_rename_uploaded_file_persists(self):
+        party = TributeParty.objects.create(name="Rename Party")
+        uploaded = SimpleUploadedFile("original.pdf", b"original-content", content_type="application/pdf")
+        record = self.client.post(f"/api/tributes/{party.id}/files", {"file": uploaded}).json()["file"]
+        response = self.client.post(f"/api/tributes/files/{record['id']}/edit", {"name": "renamed.pdf"})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["file"]["name"], "renamed.pdf")
+        listing = Client().get("/api/tributes/files").json()
+        self.assertEqual(listing[str(party.id)][0]["name"], "renamed.pdf")
+
+    def test_replace_uploaded_file_updates_durable_content(self):
+        party = TributeParty.objects.create(name="Replace Party")
+        original = SimpleUploadedFile("original.pdf", b"original-content", content_type="application/pdf")
+        record = self.client.post(f"/api/tributes/{party.id}/files", {"file": original}).json()["file"]
+        replacement = SimpleUploadedFile("replacement.pdf", b"replacement-content", content_type="application/pdf")
+        response = self.client.post(
+            f"/api/tributes/files/{record['id']}/edit",
+            {"name": "final-tribute.pdf", "file": replacement},
+        )
+        self.assertEqual(response.status_code, 200)
+        updated = response.json()["file"]
+        self.assertEqual(updated["id"], record["id"])
+        self.assertEqual(updated["name"], "final-tribute.pdf")
+        download = Client().get(updated["href"])
+        self.assertEqual(b"".join(download.streaming_content), b"replacement-content")
+
+    def test_edit_missing_attachment_returns_404(self):
+        response = self.client.post(
+            "/api/tributes/files/00000000-0000-0000-0000-000000000000/edit",
+            {"name": "missing.pdf"},
+        )
+        self.assertEqual(response.status_code, 404)

@@ -36,6 +36,15 @@ def users(request):
 def attachment_json(item):
     return {"id": str(item.id), "name": item.original_name, "href": f"/api/tributes/files/{item.id}/download", "size": item.size_bytes, "uploadedAt": item.uploaded_at.isoformat()}
 
+ALLOWED_TRIBUTE_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif", "application/pdf", "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"}
+
+def validate_tribute_upload(uploaded):
+    if uploaded.content_type not in ALLOWED_TRIBUTE_TYPES:
+        return JsonResponse({"error": "This file type is not supported."}, status=400)
+    if uploaded.size > 10 * 1024 * 1024:
+        return JsonResponse({"error": "Files must be smaller than 10 MB."}, status=413)
+    return None
+
 def party_json(party):
     return {"id": party.id, "name": party.name, "phone": party.phone, "request": party.request_status, "tribute": party.tribute_status}
 
@@ -70,9 +79,8 @@ def upload_tribute_file(request, party_id):
         return JsonResponse({"error": "Tribute party not found."}, status=404)
     uploaded = request.FILES.get("file")
     if not uploaded: return JsonResponse({"error": "Choose a file to upload."}, status=400)
-    allowed = {"image/jpeg", "image/png", "image/webp", "image/gif", "application/pdf", "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"}
-    if uploaded.content_type not in allowed: return JsonResponse({"error": "This file type is not supported."}, status=400)
-    if uploaded.size > 10 * 1024 * 1024: return JsonResponse({"error": "Files must be smaller than 10 MB."}, status=413)
+    validation_error = validate_tribute_upload(uploaded)
+    if validation_error: return validation_error
     try:
         with transaction.atomic():
             item = TributeAttachment.objects.create(party_id=party_id, file=uploaded, original_name=uploaded.name, mime_type=uploaded.content_type, size_bytes=uploaded.size)
@@ -81,6 +89,35 @@ def upload_tribute_file(request, party_id):
     except Exception:
         logger.exception("tribute_file_create_failed party_id=%s", party_id)
         return JsonResponse({"error": "The file could not be saved."}, status=500)
+
+@csrf_exempt
+@require_POST
+def edit_tribute_file(request, attachment_id):
+    item = get_object_or_404(TributeAttachment, pk=attachment_id)
+    replacement = request.FILES.get("file")
+    new_name = str(request.POST.get("name", "")).strip()
+    if not new_name and not replacement:
+        return JsonResponse({"error": "Enter a file name or choose a replacement file."}, status=400)
+    if replacement:
+        validation_error = validate_tribute_upload(replacement)
+        if validation_error: return validation_error
+    old_storage = item.file.storage
+    old_path = item.file.name
+    try:
+        with transaction.atomic():
+            if replacement:
+                item.file = replacement
+                item.mime_type = replacement.content_type
+                item.size_bytes = replacement.size
+            item.original_name = new_name or replacement.name
+            item.save()
+            if replacement and old_path and old_path != item.file.name:
+                transaction.on_commit(lambda: old_storage.delete(old_path))
+        logger.info("tribute_file_updated id=%s replaced=%s", item.id, bool(replacement))
+        return JsonResponse({"file": attachment_json(item)})
+    except Exception:
+        logger.exception("tribute_file_update_failed id=%s", item.id)
+        return JsonResponse({"error": "The file could not be updated."}, status=500)
 
 @require_GET
 def download_tribute_file(request, attachment_id):

@@ -75,6 +75,8 @@
 .media-empty span{color:var(--muted);font-size:.82rem}
 .attachment-item{display:inline-flex;align-items:center;gap:.35rem;max-width:100%}
 .attachment-download{display:inline-flex;min-height:2.5rem;align-items:center;border:1px solid var(--line);border-radius:.55rem;background:white;color:var(--navy);padding:.4rem .55rem;font-size:.66rem;font-weight:800;text-decoration:none}
+.attachment-edit{min-height:2.5rem;border:1px solid var(--navy);border-radius:.55rem;background:var(--navy);color:white;padding:.4rem .65rem;font-size:.66rem;font-weight:800;cursor:pointer}
+.form-help{margin:-.35rem 0 .75rem;color:var(--muted);font-size:.75rem}
 @media(min-width:40rem){.media-overview{gap:.8rem}.media-overview article{padding:1rem 1.2rem}.media-overview strong{font-size:2rem}}
 @media(min-width:64rem){.media-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.media-copy{min-height:11rem}}
 @media(min-width:90rem){.media-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
