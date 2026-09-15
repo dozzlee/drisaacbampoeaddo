@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow, noarchive">
+  <title>Oko and Atteh Teams Hub</title>
+  <meta name="description" content="Private coordination hub for the Isaac Bampoe Addo funeral planning team.">
+  <link rel="icon" href="../logo/logo_new.png" type="image/png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="teams.css?v=20260915-4">
+</head>
+<body>
+  <section class="gate" id="accessGate" aria-labelledby="gateTitle">
+    <div class="gate-art" aria-hidden="true"><div class="art-orbit"></div><span>OA</span><small>Teams Hub</small></div>
+    <div class="gate-panel">
+      <div class="gate-logo"><span>OA</span><strong>Oko and Atteh<br>Teams Hub</strong></div>
+      <div class="gate-copy"><p class="eyebrow">Private team workspace</p><h1 id="gateTitle">Welcome back</h1><p>Enter the access code shared with you by the funeral coordination team.</p></div>
+      <form class="access-form" id="accessForm">
+        <label for="accessCode">Access code</label>
+        <input id="accessCode" name="accessCode" type="text" autocomplete="one-time-code" autocapitalize="characters" spellcheck="false" placeholder="Enter your access code" required>
+        <button class="primary-button" type="submit">Continue</button>
+        <p class="form-note" id="accessMessage" aria-live="polite">Use the private access code supplied to you.</p>
+      </form>
+      <p class="privacy-note">Restricted planning space. Keep access codes and team records private.</p>
+    </div>
+  </section>
+
+  <section class="onboarding" id="onboarding" hidden aria-labelledby="onboardingTitle">
+    <form class="onboarding-card" id="profileForm">
+      <button class="plain-button" type="button" id="backToCode">← Back</button><div class="onboarding-icon">OA</div>
+      <p class="eyebrow">Complete your profile</p><h1 id="onboardingTitle">Tell us who you are</h1><p>Your access code has already assigned your role.</p>
+      <div class="form-grid"><label>Full name<input name="fullName" autocomplete="name" required></label><label>Phone number<input name="phone" type="tel" autocomplete="tel" required></label></div>
+      <div class="assigned-role"><span>Assigned role</span><strong id="assignedRole">Team Member</strong></div><button class="primary-button" type="submit">Open dashboard</button>
+    </form>
+  </section>
+
+  <div class="app-shell" id="appShell" hidden>
+    <aside class="sidebar" id="sidebar">
+      <div class="brand"><span>OA</span><strong>Oko and Atteh</strong></div>
+      <nav class="primary-nav" id="primaryNav" aria-label="Teams Hub">
+        <button class="active" data-view="tasks"><span class="nav-icon">✓</span><span><strong>Tasks</strong><small>Master plan and calendar</small></span></button>
+        <button data-view="media"><span class="nav-icon">▧</span><span><strong>Media</strong><small>Approved partner files</small></span></button>
+        <button data-view="tributes"><span class="nav-icon">✦</span><span><strong>Tributes</strong><small>Invitations and files</small></span></button>
+        <button data-view="access" id="accessNav"><span class="nav-icon">⌾</span><span><strong>Access control</strong><small>Admin only</small></span></button>
+      </nav>
+      <div class="sidebar-card"><span>Funeral</span><strong>7 November 2026</strong><small id="sidebarCountdown">54 days remaining</small></div>
+      <div class="sidebar-profile"><span class="avatar" id="profileInitials">TM</span><div><strong id="profileName">Team Member</strong><small id="profileRole">Normal User</small></div><button type="button" id="signOut" aria-label="Sign out">↗</button></div>
+    </aside>
+
+    <main class="workspace">
+      <header class="topbar">
+        <button class="menu-button" id="menuButton" type="button" aria-controls="sidebar" aria-expanded="false" aria-label="Open navigation"><span></span><span></span><span></span></button>
+        <div><p id="todayLabel"></p><h1 id="viewTitle">What needs to be done</h1></div>
+        <div class="top-actions"><button class="icon-button" type="button" aria-label="Notifications">2</button></div>
+      </header>
+
+      <section class="view active" id="tasksView" data-view-panel="tasks">
+        <div class="page-heading"><div><p class="eyebrow">Funeral coordination</p><h2>What needs to be done</h2><p>Every task, accountable person and deadline from the approved funeral and brochure plans.</p></div><div class="heading-actions"><button class="secondary-button share-button" id="shareTasks" type="button">Share tasks on WhatsApp</button><button class="primary-button admin-action" id="addTask" type="button">+ Add task</button></div></div>
+        <div class="stat-row" id="taskStats"></div>
+        <section class="card calendar-card">
+          <div class="card-head"><div><p class="eyebrow">Schedule</p><h3 id="calendarTitle">September 2026</h3></div><div class="calendar-controls"><button id="calendarPrev" aria-label="Previous month">←</button><button id="calendarToday">Today</button><button id="calendarNext" aria-label="Next month">→</button></div></div>
+          <div class="calendar-scroll"><div class="calendar" id="calendar"></div></div>
+          <div class="calendar-legend"><span><i class="dot task-dot"></i>Task</span><span><i class="dot milestone-dot"></i>Milestone</span><span><i class="dot event-dot"></i>Funeral event</span></div>
+        </section>
+        <section class="card table-card">
+          <div class="card-head table-heading"><div><p class="eyebrow">Master task register</p><h3>All work items</h3></div><div class="filters"><label><span class="sr-only">Search tasks</span><input id="taskSearch" type="search" placeholder="Search tasks or owners"></label><label><span class="sr-only">Filter by status</span><select id="taskStatusFilter"><option value="all">All statuses</option><option value="not-started">Not started</option><option value="in-progress">In progress</option><option value="completed">Completed</option><option value="blocked">Blocked</option></select></label></div></div>
+          <div class="data-table-wrap"><table class="data-table"><thead><tr><th>Task</th><th>Workstream</th><th>Person in charge</th><th>Deadline</th><th>Priority</th><th>Status</th><th>Notes</th><th>Actions</th></tr></thead><tbody id="taskTableBody"></tbody></table></div>
+        </section>
+      </section>
+
+      <section class="view" id="mediaView" data-view-panel="media" hidden>
+        <div class="page-heading media-heading"><div><p class="eyebrow">For media partners</p><h2>Media library</h2><p>Approved photographs, identity assets, programmes and broadcast material, ready to view or download.</p></div><label class="primary-button file-button admin-action">+ Upload media<input id="mediaUpload" type="file" accept="image/*,.pdf,.doc,.docx" multiple></label></div>
+        <div class="media-overview"><article><span>Total assets</span><strong id="mediaCount">0</strong></article><article><span>Shared with media</span><strong id="mediaSharedCount">0</strong></article><article><span>Admin only</span><strong id="mediaPrivateCount">0</strong></article></div>
+        <div class="library-toolbar card"><div class="segmented" id="mediaFilters"><button class="active" data-filter="all">All files</button><button data-filter="photograph">Photos</button><button data-filter="document">Documents</button><button data-filter="identity">Identity</button></div><label class="media-search"><span class="sr-only">Search media files</span><input id="mediaSearch" type="search" placeholder="Search media files"></label></div>
+        <div class="media-grid" id="mediaGrid"></div>
+      </section>
+
+      <section class="view" id="tributesView" data-view-panel="tributes" hidden>
+        <div class="page-heading"><div><p class="eyebrow">Invitation register</p><h2>Tributes</h2><p>Track each person or organisation and attach the letter, tribute, photograph or supporting file to the correct record.</p></div><button class="primary-button admin-action" id="addTributeParty" type="button">+ Add party</button></div>
+        <div class="stat-row" id="tributeStats"></div>
+        <section class="card table-card tribute-register">
+          <div class="card-head table-heading"><div><p class="eyebrow">Interested parties</p><h3>Tribute invitation register</h3></div><div class="filters"><label><span class="sr-only">Search tribute parties</span><input id="tributeSearch" type="search" placeholder="Search person or organisation"></label><label><span class="sr-only">Filter tribute status</span><select id="tributeStatusFilter"><option value="all">All records</option><option value="not-recorded">Status not recorded</option><option value="sent">Request sent</option><option value="received">Tribute received</option></select></label></div></div>
+          <div class="data-table-wrap"><table class="data-table tribute-table"><thead><tr><th>Person or organisation</th><th>Contact</th><th>Request</th><th>Tribute</th><th>Files</th><th>Action</th></tr></thead><tbody id="tributeTableBody"></tbody></table></div>
+        </section>
+      </section>
+
+      <section class="view" id="accessView" data-view-panel="access" hidden>
+        <div class="page-heading"><div><p class="eyebrow">Admin only</p><h2>Access control</h2><p>Three focused roles keep records private while giving media partners only the approved assets they need.</p></div><button class="primary-button" id="generateCode" type="button">+ Generate code</button></div>
+        <div class="role-cards"><article><span class="role-symbol admin-symbol">A</span><div><h3>Admin</h3><p>Full access to all four tabs, records, files, codes and members.</p></div><strong>Full access</strong></article><article><span class="role-symbol user-symbol">U</span><div><h3>Normal user</h3><p>Access to Tasks, Media and Tributes. Access Control stays hidden.</p></div><strong>3 tabs</strong></article><article><span class="role-symbol media-symbol">M</span><div><h3>Media person</h3><p>Sees only assets that an admin has marked as available for media partners.</p></div><strong>Media only</strong></article></div>
+        <div class="access-grid">
+          <section class="card"><div class="card-head"><div><p class="eyebrow">Access codes</p><h3>Active codes</h3></div></div><div class="code-list" id="codeList"><article><div><strong>ADMIN2026</strong><small>Admin · Preview code</small></div><span class="status active-status">Active</span></article><article><div><strong>TEAMS2026</strong><small>Normal user · Preview code</small></div><span class="status active-status">Active</span></article><article><div><strong>MEDIA2026</strong><small>Media person · Approved assets only</small></div><span class="status active-status">Active</span></article></div></section>
+          <section class="card"><div class="card-head"><div><p class="eyebrow">People</p><h3>Member directory</h3></div></div><div class="member-list" id="memberList"><article><span class="avatar">FA</span><div><strong>Funeral Administrator</strong><small>Admin</small></div><button class="secondary-button">Manage</button></article><article><span class="avatar">MP</span><div><strong>Media Partner</strong><small>Media person · Approved assets only</small></div><button class="secondary-button">Manage</button></article><article><span class="avatar" id="currentMemberAvatar">TM</span><div><strong id="currentMemberName">Current member</strong><small id="currentMemberRole">Normal user</small></div><button class="secondary-button">Manage</button></article></div></section>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <dialog class="modal" id="recordModal"><form method="dialog" id="recordForm"><div class="modal-head"><div><p class="eyebrow" id="modalEyebrow">New record</p><h2 id="modalTitle">Add task</h2></div><button value="cancel" aria-label="Close">×</button></div><div id="modalFields"></div><menu><button value="cancel" class="secondary-button">Cancel</button><button value="save" class="primary-button" id="modalSave">Save</button></menu></form></dialog>
+  <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+  <script src="teams.js?v=20260915-4"></script>
+</body>
+</html>
