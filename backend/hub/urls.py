@@ -13,4 +13,11 @@ urlpatterns = [
     path("media/<uuid:asset_id>/preview", views.preview_media_asset),
     path("media/<uuid:asset_id>/download", views.download_media_asset),
     path("media/<uuid:asset_id>", views.delete_media_asset),
+    path("activities", views.activities),
+    path("activities/<int:task_id>", views.activity_detail),
+    path("activities/subcommittees", views.activity_subcommittees),
+    path("activities/subcommittees/<uuid:subcommittee_id>", views.activity_subcommittee_detail),
+    path("activities/<int:task_id>/files", views.upload_activity_file),
+    path("activities/files/<uuid:attachment_id>/download", views.download_activity_file),
+    path("activities/files/<uuid:attachment_id>", views.delete_activity_file),
 ]

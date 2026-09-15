@@ -3,10 +3,46 @@ from pathlib import Path
 from unittest.mock import patch
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import Client, TestCase, override_settings
-from .models import MediaAsset, TributeAttachment, TributeParty, UserProfile
+from .models import ActivityAttachment, ActivitySubcommittee, ActivityTask, MediaAsset, TributeAttachment, TributeParty, UserProfile
 
 @override_settings(MEDIA_ROOT=tempfile.mkdtemp())
 class HubFlowTests(TestCase):
+    def test_activity_crud_is_persistent_and_admin_only(self):
+        group = ActivitySubcommittee.objects.create(main_committee="funeral", name="Test Logistics")
+        payload = {
+            "task": "Arrange test transport", "mainCommittee": "funeral",
+            "subcommitteeId": str(group.id), "owner": "Ama", "deadline": "2026-10-01",
+            "priority": "High", "status": "in-progress", "progress": 40,
+            "supportingMembers": "Kojo, Esi", "labels": "transport, urgent",
+        }
+        denied = self.client.post("/api/activities", payload, content_type="application/json")
+        self.assertEqual(denied.status_code, 403)
+        created = self.client.post("/api/activities", payload, content_type="application/json", HTTP_X_TEAMS_ROLE="admin")
+        self.assertEqual(created.status_code, 201)
+        record = created.json()["task"]
+        self.assertEqual(record["supportingMembers"], ["Kojo", "Esi"])
+        listing = Client().get("/api/activities").json()["tasks"]
+        self.assertIn(record["id"], [item["id"] for item in listing])
+        payload["progress"] = 100
+        payload["status"] = "completed"
+        updated = self.client.post(f"/api/activities/{record['id']}", payload, content_type="application/json", HTTP_X_TEAMS_ROLE="admin")
+        self.assertEqual(updated.json()["task"]["progress"], 100)
+
+    def test_activity_rejects_invalid_group_and_manages_attachment(self):
+        invalid = self.client.post(
+            "/api/activities", {"task": "Invalid", "mainCommittee": "funeral", "subcommitteeId": "not-a-uuid"},
+            content_type="application/json", HTTP_X_TEAMS_ROLE="admin",
+        )
+        self.assertEqual(invalid.status_code, 400)
+        group = ActivitySubcommittee.objects.create(main_committee="brochure", name="Test Editorial")
+        task = ActivityTask.objects.create(title="Proofread", main_committee="brochure", subcommittee=group)
+        uploaded = SimpleUploadedFile("notes.pdf", b"activity-notes", content_type="application/pdf")
+        response = self.client.post(f"/api/activities/{task.id}/files", {"file": uploaded}, HTTP_X_TEAMS_ROLE="admin")
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(ActivityAttachment.objects.filter(task=task).count(), 1)
+        download = self.client.get(response.json()["file"]["href"])
+        self.assertEqual(b"".join(download.streaming_content), b"activity-notes")
+
     def test_phone_number_maps_to_one_user(self):
         first = self.client.post("/api/users/", data='{"name":"Ama","phone":"024 123 4567","role":"user"}', content_type="application/json")
         second = self.client.post("/api/users/", data='{"name":"Someone Else","phone":"+233 24 123 4567","role":"admin"}', content_type="application/json")

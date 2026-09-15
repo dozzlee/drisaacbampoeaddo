@@ -90,3 +90,71 @@ class MediaAsset(models.Model):
 
     def __str__(self):
         return self.title
+
+class ActivitySubcommittee(models.Model):
+    class MainCommittee(models.TextChoices):
+        FUNERAL = "funeral", "Funeral Committee"
+        BROCHURE = "brochure", "Brochure Committee"
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    main_committee = models.CharField(max_length=16, choices=MainCommittee.choices)
+    name = models.CharField(max_length=160)
+    color = models.CharField(max_length=7, default="#5679C8")
+    active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["main_committee", "name"]
+        constraints = [models.UniqueConstraint(fields=["main_committee", "name"], name="unique_activity_subcommittee")]
+
+    def __str__(self):
+        return f"{self.get_main_committee_display()} - {self.name}"
+
+class ActivityTask(models.Model):
+    class MainCommittee(models.TextChoices):
+        FUNERAL = "funeral", "Funeral Committee"
+        BROCHURE = "brochure", "Brochure Committee"
+
+    class Status(models.TextChoices):
+        NOT_STARTED = "not-started", "Not Started"
+        IN_PROGRESS = "in-progress", "In Progress"
+        AWAITING_FEEDBACK = "awaiting-feedback", "Awaiting Feedback"
+        BLOCKED = "blocked", "Blocked"
+        NEARING_COMPLETION = "nearing-completion", "Nearing Completion"
+        COMPLETED = "completed", "Completed"
+        OVERDUE = "overdue", "Overdue"
+
+    title = models.CharField(max_length=500)
+    main_committee = models.CharField(max_length=16, choices=MainCommittee.choices)
+    subcommittee = models.ForeignKey(ActivitySubcommittee, null=True, blank=True, on_delete=models.SET_NULL, related_name="tasks")
+    owner = models.CharField(max_length=255, blank=True)
+    supporting_members = models.JSONField(default=list, blank=True)
+    start_date = models.DateField(null=True, blank=True)
+    deadline = models.DateField(null=True, blank=True)
+    priority = models.CharField(max_length=20, default="Normal")
+    status = models.CharField(max_length=32, choices=Status.choices, default=Status.NOT_STARTED)
+    progress = models.PositiveSmallIntegerField(default=0)
+    notes = models.TextField(blank=True)
+    labels = models.JSONField(default=list, blank=True)
+    source_key = models.CharField(max_length=120, unique=True, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["deadline", "id"]
+
+    def __str__(self):
+        return self.title
+
+class ActivityAttachment(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    task = models.ForeignKey(ActivityTask, on_delete=models.CASCADE, related_name="attachments")
+    file = models.FileField(upload_to="activities/%Y/%m/")
+    original_name = models.CharField(max_length=255)
+    mime_type = models.CharField(max_length=160)
+    size_bytes = models.PositiveBigIntegerField()
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["uploaded_at"]

@@ -1,12 +1,13 @@
 import json
 import logging
+import re
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, connection, transaction
 from django.http import FileResponse, JsonResponse, HttpResponseRedirect
 from django.shortcuts import get_object_or_404
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
-from .models import MediaAsset, TributeAttachment, TributeParty, UserProfile, normalize_phone
+from .models import ActivityAttachment, ActivitySubcommittee, ActivityTask, MediaAsset, TributeAttachment, TributeParty, UserProfile, normalize_phone
 
 logger = logging.getLogger(__name__)
 
@@ -315,3 +316,177 @@ def preview_media_asset(request, asset_id):
 @require_GET
 def download_media_asset(request, asset_id):
     return media_file_response(get_object_or_404(MediaAsset, pk=asset_id), True)
+
+def activity_attachment_json(item):
+    return {"id": str(item.id), "name": item.original_name, "size": item.size_bytes, "href": f"/api/activities/files/{item.id}/download"}
+
+def subcommittee_json(item):
+    return {"id": str(item.id), "mainCommittee": item.main_committee, "name": item.name, "color": item.color, "active": item.active}
+
+def activity_json(item):
+    return {
+        "id": item.id, "task": item.title, "mainCommittee": item.main_committee,
+        "subcommitteeId": str(item.subcommittee_id) if item.subcommittee_id else "",
+        "subcommittee": item.subcommittee.name if item.subcommittee else "Needs Classification",
+        "color": item.subcommittee.color if item.subcommittee else "#8A8F98",
+        "owner": item.owner, "supportingMembers": item.supporting_members,
+        "startDate": item.start_date.isoformat() if item.start_date else "",
+        "deadline": item.deadline.isoformat() if item.deadline else "",
+        "priority": item.priority, "status": item.status, "progress": item.progress,
+        "notes": item.notes, "labels": item.labels, "updatedAt": item.updated_at.isoformat(),
+        "attachments": [activity_attachment_json(file) for file in item.attachments.all()],
+    }
+
+def apply_activity_fields(item, data):
+    item.title = str(data.get("task", item.title)).strip()
+    item.main_committee = str(data.get("mainCommittee", item.main_committee)).strip()
+    subcommittee_id = str(data.get("subcommitteeId", item.subcommittee_id or "")).strip()
+    try:
+        item.subcommittee = ActivitySubcommittee.objects.filter(pk=subcommittee_id, main_committee=item.main_committee).first() if subcommittee_id else None
+    except (ValidationError, ValueError):
+        item.subcommittee = None
+    item.owner = str(data.get("owner", item.owner)).strip()
+    item.supporting_members = split_labels(data.get("supportingMembers", ",".join(item.supporting_members)))
+    if "startDate" in data: item.start_date = str(data.get("startDate", "")).strip() or None
+    if "deadline" in data: item.deadline = str(data.get("deadline", "")).strip() or None
+    item.priority = str(data.get("priority", item.priority or "Normal")).strip()
+    item.status = str(data.get("status", item.status or ActivityTask.Status.NOT_STARTED)).strip()
+    if "progress" in data:
+        item.progress = max(0, min(100, int(data.get("progress") or 0)))
+    item.notes = str(data.get("notes", item.notes)).strip()
+    item.labels = split_labels(data.get("labels", ",".join(item.labels)))
+
+def validate_activity(item):
+    if not item.title: return "Task is required."
+    if item.main_committee not in ActivityTask.MainCommittee.values: return "Choose a valid main committee."
+    if item.status not in ActivityTask.Status.values: return "Choose a valid task status."
+    if not item.subcommittee: return "Choose a subcommittee."
+    return None
+
+@csrf_exempt
+@require_http_methods(["GET", "POST"])
+def activities(request):
+    if request.method == "GET":
+        records = ActivityTask.objects.select_related("subcommittee").prefetch_related("attachments")
+        return JsonResponse({"tasks": [activity_json(item) for item in records]})
+    denied = admin_required(request)
+    if denied: return denied
+    item = ActivityTask()
+    try:
+        apply_activity_fields(item, json.loads(request.body))
+        error = validate_activity(item)
+        if error: return JsonResponse({"error": error}, status=400)
+        item.save()
+        item.refresh_from_db()
+        logger.info("activity_created id=%s", item.id)
+        return JsonResponse({"task": activity_json(item)}, status=201)
+    except (json.JSONDecodeError, TypeError, ValueError):
+        return JsonResponse({"error": "Invalid task data."}, status=400)
+
+@csrf_exempt
+@require_http_methods(["POST", "DELETE"])
+def activity_detail(request, task_id):
+    denied = admin_required(request)
+    if denied: return denied
+    item = get_object_or_404(ActivityTask, pk=task_id)
+    if request.method == "DELETE":
+        paths = [(file.file.storage, file.file.name) for file in item.attachments.all() if file.file]
+        with transaction.atomic():
+            item.delete()
+            for storage, path in paths: transaction.on_commit(lambda s=storage, p=path: s.delete(p))
+        logger.info("activity_deleted id=%s", task_id)
+        return JsonResponse({"deleted": True, "id": task_id})
+    try:
+        apply_activity_fields(item, json.loads(request.body))
+        error = validate_activity(item)
+        if error: return JsonResponse({"error": error}, status=400)
+        item.save()
+        item.refresh_from_db()
+        logger.info("activity_updated id=%s", item.id)
+        return JsonResponse({"task": activity_json(item)})
+    except (json.JSONDecodeError, TypeError, ValueError):
+        return JsonResponse({"error": "Invalid task data."}, status=400)
+
+@csrf_exempt
+@require_http_methods(["GET", "POST"])
+def activity_subcommittees(request):
+    if request.method == "GET":
+        return JsonResponse({"subcommittees": [subcommittee_json(item) for item in ActivitySubcommittee.objects.all()]})
+    denied = admin_required(request)
+    if denied: return denied
+    try:
+        payload = json.loads(request.body)
+        main = str(payload.get("mainCommittee", "")).strip()
+        name = str(payload.get("name", "")).strip()
+        color = str(payload.get("color", "#5679C8")).strip()
+        if main not in ActivitySubcommittee.MainCommittee.values or not name or not re.fullmatch(r"#[0-9A-Fa-f]{6}", color):
+            return JsonResponse({"error": "Enter a valid committee, name and colour."}, status=400)
+        item = ActivitySubcommittee.objects.create(main_committee=main, name=name, color=color)
+        return JsonResponse({"subcommittee": subcommittee_json(item)}, status=201)
+    except (json.JSONDecodeError, IntegrityError):
+        return JsonResponse({"error": "That subcommittee already exists or the data is invalid."}, status=400)
+
+@csrf_exempt
+@require_http_methods(["POST", "DELETE"])
+def activity_subcommittee_detail(request, subcommittee_id):
+    denied = admin_required(request)
+    if denied: return denied
+    item = get_object_or_404(ActivitySubcommittee, pk=subcommittee_id)
+    if request.method == "DELETE":
+        if item.tasks.exists(): return JsonResponse({"error": "Move or merge this subcommittee's tasks before removing it."}, status=409)
+        item.delete()
+        return JsonResponse({"deleted": True})
+    try:
+        payload = json.loads(request.body)
+        name = str(payload.get("name", item.name)).strip()
+        color = str(payload.get("color", item.color)).strip()
+        if not name or not re.fullmatch(r"#[0-9A-Fa-f]{6}", color): return JsonResponse({"error": "Enter a valid name and colour."}, status=400)
+        merge_id = str(payload.get("mergeInto", "")).strip()
+        with transaction.atomic():
+            if merge_id:
+                target = get_object_or_404(ActivitySubcommittee, pk=merge_id, main_committee=item.main_committee)
+                item.tasks.update(subcommittee=target)
+                item.delete()
+                return JsonResponse({"merged": True, "subcommittee": subcommittee_json(target)})
+            item.name, item.color = name, color
+            item.save()
+        return JsonResponse({"subcommittee": subcommittee_json(item)})
+    except (json.JSONDecodeError, IntegrityError):
+        return JsonResponse({"error": "The subcommittee could not be updated."}, status=400)
+
+@csrf_exempt
+@require_POST
+def upload_activity_file(request, task_id):
+    denied = admin_required(request)
+    if denied: return denied
+    task = get_object_or_404(ActivityTask, pk=task_id)
+    uploaded = request.FILES.get("file")
+    if not uploaded: return JsonResponse({"error": "Choose a file to upload."}, status=400)
+    error = validate_library_upload(uploaded)
+    if error: return error
+    try:
+        item = ActivityAttachment.objects.create(task=task, file=uploaded, original_name=uploaded.name, mime_type=uploaded.content_type, size_bytes=uploaded.size)
+        return JsonResponse({"file": activity_attachment_json(item)}, status=201)
+    except Exception:
+        logger.exception("activity_file_create_failed task_id=%s", task_id)
+        return JsonResponse({"error": "The file could not be saved."}, status=500)
+
+@csrf_exempt
+@require_http_methods(["DELETE"])
+def delete_activity_file(request, attachment_id):
+    denied = admin_required(request)
+    if denied: return denied
+    item = get_object_or_404(ActivityAttachment, pk=attachment_id)
+    storage, path = item.file.storage, item.file.name
+    with transaction.atomic():
+        item.delete()
+        transaction.on_commit(lambda: storage.delete(path))
+    return JsonResponse({"deleted": True})
+
+@require_GET
+def download_activity_file(request, attachment_id):
+    item = get_object_or_404(ActivityAttachment, pk=attachment_id)
+    try:
+        return FileResponse(item.file.open("rb"), as_attachment=True, filename=item.original_name, content_type=item.mime_type)
+    except (FileNotFoundError, OSError):
+        return JsonResponse({"error": "The stored file is unavailable."}, status=404)
