@@ -96,3 +96,20 @@ class HubFlowTests(TestCase):
             {"name": "missing.pdf"},
         )
         self.assertEqual(response.status_code, 404)
+
+    def test_remove_attachment_deletes_metadata_and_stored_file(self):
+        party = TributeParty.objects.create(name="Removal Party")
+        uploaded = SimpleUploadedFile("remove-me.pdf", b"remove-content", content_type="application/pdf")
+        record = self.client.post(f"/api/tributes/{party.id}/files", {"file": uploaded}).json()["file"]
+        attachment = TributeAttachment.objects.get(pk=record["id"])
+        stored_path = Path(attachment.file.path)
+        self.assertTrue(stored_path.exists())
+        with self.captureOnCommitCallbacks(execute=True):
+            response = self.client.delete(f"/api/tributes/files/{record['id']}")
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(TributeAttachment.objects.filter(pk=record["id"]).exists())
+        self.assertFalse(stored_path.exists())
+
+    def test_remove_missing_attachment_returns_404(self):
+        response = self.client.delete("/api/tributes/files/00000000-0000-0000-0000-000000000000")
+        self.assertEqual(response.status_code, 404)

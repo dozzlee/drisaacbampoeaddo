@@ -119,6 +119,23 @@ def edit_tribute_file(request, attachment_id):
         logger.exception("tribute_file_update_failed id=%s", item.id)
         return JsonResponse({"error": "The file could not be updated."}, status=500)
 
+@csrf_exempt
+@require_http_methods(["DELETE"])
+def delete_tribute_file(request, attachment_id):
+    item = get_object_or_404(TributeAttachment, pk=attachment_id)
+    storage = item.file.storage
+    stored_path = item.file.name
+    try:
+        with transaction.atomic():
+            item.delete()
+            if stored_path:
+                transaction.on_commit(lambda: storage.delete(stored_path))
+        logger.info("tribute_file_deleted id=%s", attachment_id)
+        return JsonResponse({"deleted": True, "id": str(attachment_id)})
+    except Exception:
+        logger.exception("tribute_file_delete_failed id=%s", attachment_id)
+        return JsonResponse({"error": "The file could not be removed."}, status=500)
+
 @require_GET
 def download_tribute_file(request, attachment_id):
     item = get_object_or_404(TributeAttachment, pk=attachment_id)

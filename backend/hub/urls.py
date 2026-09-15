@@ -6,5 +6,6 @@ urlpatterns = [
     path("tributes/files", views.tribute_files),
     path("tributes/files/<uuid:attachment_id>/download", views.download_tribute_file),
     path("tributes/files/<uuid:attachment_id>/edit", views.edit_tribute_file),
+    path("tributes/files/<uuid:attachment_id>", views.delete_tribute_file),
     path("tributes/<int:party_id>/files", views.upload_tribute_file),
 ]
