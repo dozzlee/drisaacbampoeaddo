@@ -25,6 +25,19 @@ class UserProfile(models.Model):
         self.normalized_phone = normalize_phone(self.phone)
         super().save(*args, **kwargs)
 
+class TributeParty(models.Model):
+    name = models.CharField(max_length=255)
+    phone = models.CharField(max_length=32, blank=True)
+    request_status = models.CharField(max_length=32, default="Not recorded")
+    tribute_status = models.CharField(max_length=32, default="Not recorded")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["id"]
+
+    def __str__(self):
+        return self.name
+
 class TributeAttachment(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     party_id = models.PositiveBigIntegerField(db_index=True)
