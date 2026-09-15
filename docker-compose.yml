@@ -1,0 +1,40 @@
+services:
+  gateway:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile
+    ports: ["80"]
+    depends_on: [frontend, backend]
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    environment:
+      NODE_ENV: production
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    environment:
+      DATABASE_URL: postgresql://oko:${POSTGRES_PASSWORD:-atteh}@db:5432/oko_atteh
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:-change-me-in-coolify}
+      ALLOWED_HOSTS: localhost,127.0.0.1,isaacbampoeaddo.com
+      MEDIA_ROOT: /app/media
+    volumes: ["tribute_media:/app/media"]
+    depends_on:
+      db: {condition: service_healthy}
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: oko_atteh
+      POSTGRES_USER: oko
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-atteh}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U oko -d oko_atteh"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    volumes: ["postgres_data:/var/lib/postgresql/data"]
+volumes:
+  postgres_data:
+  tribute_media:

@@ -1,0 +1,10 @@
+.git
+.DS_Store
+.playwright-cli
+.impeccable
+output
+pictures
+node_modules
+frontend/.next
+__pycache__
+*.pyc
