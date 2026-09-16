@@ -9,7 +9,7 @@ const tasks = [];
 const subcommittees = [];
 let selectedCommittee = "all";
 let selectedSubcommittee = "all";
-let activityView = "list";
+let activityView = "grouped";
 
 const funeralEvents = [
   {date:"2026-09-24",title:"Tributes due",type:"milestone"},{date:"2026-10-02",title:"First draft",type:"milestone"},{date:"2026-10-05",title:"First review",type:"milestone"},{date:"2026-10-09",title:"Final review",type:"milestone"},{date:"2026-10-12",title:"Final approval",type:"milestone"},{date:"2026-10-15",title:"Brochure printing",type:"milestone"},{date:"2026-10-30",title:"Vigil",type:"funeral"},{date:"2026-11-06",title:"Wake",type:"funeral"},{date:"2026-11-07",title:"Funeral",type:"funeral"},{date:"2026-11-08",title:"Thanksgiving",type:"funeral"}
