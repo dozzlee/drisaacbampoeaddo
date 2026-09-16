@@ -14,12 +14,17 @@ class HubFlowTests(TestCase):
 
     def test_uncle_oko_tribute_parties_are_seeded(self):
         expected = {
-            "Ministry of Agriculture": "Minadi",
-            "Accra Academy": "Dr Latt",
-            "New Hope School": "Alhagi",
-            "KNUST Katanga": "Alhagi",
+            "Ministry of Agriculture": {"assignedTo": "Minadi", "mainCommittee": "oko"},
+            "Accra Academy": {"assignedTo": "Dr Latt", "mainCommittee": "oko"},
+            "New Hope School": {"assignedTo": "Alhagi", "mainCommittee": "oko"},
+            "KNUST Katanga": {"assignedTo": "Alhagi", "mainCommittee": "oko"},
         }
-        actual = dict(TributeParty.objects.filter(name__in=expected).values_list("name", "assigned_to"))
+        actual = {
+            name: {"assignedTo": assigned_to, "mainCommittee": main_committee}
+            for name, assigned_to, main_committee in TributeParty.objects.filter(name__in=expected).values_list(
+                "name", "assigned_to", "main_committee"
+            )
+        }
         self.assertEqual(actual, expected)
 
     def test_uncle_oko_is_a_separate_main_committee(self):
@@ -27,6 +32,10 @@ class HubFlowTests(TestCase):
         self.assertEqual(tasks.count(), 12)
         self.assertFalse(tasks.exclude(main_committee="oko").exists())
         self.assertTrue(ActivitySubcommittee.objects.filter(main_committee="oko", name="Tributes").exists())
+        self.assertEqual(
+            dict(tasks.filter(source_key__in=["oko-03", "oko-04"]).values_list("source_key", "owner")),
+            {"oko-03": "Alhagi", "oko-04": "Alhagi"},
+        )
 
         group = ActivitySubcommittee.objects.create(main_committee="oko", name="Test Oko Group")
         response = self.client.post(
@@ -132,13 +141,14 @@ class HubFlowTests(TestCase):
     def test_create_party_is_returned_to_a_fresh_client(self):
         response = self.client.post(
             "/api/tributes/parties",
-            data='{"name":"New Persistent Party","phone":"0240000000","assignedTo":"Ama Mensah"}',
+            data='{"name":"New Persistent Party","mainCommittee":"oko","phone":"0240000000","assignedTo":"Ama Mensah"}',
             content_type="application/json",
         )
         self.assertEqual(response.status_code, 201)
         record = response.json()["party"]
         self.assertIsInstance(record["id"], int)
         self.assertEqual(record["assignedTo"], "Ama Mensah")
+        self.assertEqual(record["mainCommittee"], "oko")
         parties = Client().get("/api/tributes/parties").json()["parties"]
         self.assertIn(record, parties)
 

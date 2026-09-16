@@ -26,9 +26,14 @@ class UserProfile(models.Model):
         super().save(*args, **kwargs)
 
 class TributeParty(models.Model):
+    class MainCommittee(models.TextChoices):
+        GENERAL = "general", "General tribute register"
+        OKO = "oko", "Logistics Uncle Oko"
+
     name = models.CharField(max_length=255)
     phone = models.CharField(max_length=32, blank=True)
     assigned_to = models.CharField(max_length=255, blank=True)
+    main_committee = models.CharField(max_length=16, choices=MainCommittee.choices, default=MainCommittee.GENERAL, db_index=True)
     request_status = models.CharField(max_length=32, default="Not recorded")
     tribute_status = models.CharField(max_length=32, default="Not recorded")
     created_at = models.DateTimeField(auto_now_add=True)

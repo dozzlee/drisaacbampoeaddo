@@ -47,7 +47,7 @@ def build_tribute_register_pdf(parties, attachments_by_party):
         Paragraph(f"Complete list of {len(parties)} interested parties - generated {escape(generated)}", meta_style),
         Spacer(1, 5 * mm),
     ]
-    headers = ["Person or organisation", "Contact", "Responsible person", "Request", "Tribute", "Supporting files", "Tribute files"]
+    headers = ["Person or organisation", "Committee", "Contact", "Responsible person", "Request", "Tribute", "Supporting files", "Tribute files"]
     data = [[Paragraph(label, header_style) for label in headers]]
     for party in parties:
         attachments = attachments_by_party.get(party.id, [])
@@ -55,6 +55,7 @@ def build_tribute_register_pdf(parties, attachments_by_party):
         tributes = [item.original_name for item in attachments if item.attachment_type == "tribute"]
         data.append([
             _text(party.name, cell_style),
+            _text("Logistics Uncle Oko" if party.main_committee == "oko" else "General register", small_style),
             _text(party.phone or "Not provided", small_style),
             _text(party.assigned_to or "Unassigned", cell_style),
             _text(party.request_status, cell_style),
@@ -64,7 +65,7 @@ def build_tribute_register_pdf(parties, attachments_by_party):
         ])
 
     usable_width = page_width - doc.leftMargin - doc.rightMargin
-    column_weights = [1.55, 0.82, 1.05, 0.72, 0.72, 1.25, 1.25]
+    column_weights = [1.45, 0.85, 0.72, 0.95, 0.62, 0.62, 1.1, 1.1]
     weight_total = sum(column_weights)
     column_widths = [usable_width * weight / weight_total for weight in column_weights]
     table = LongTable(data, colWidths=column_widths, repeatRows=1, hAlign="LEFT")

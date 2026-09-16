@@ -89,7 +89,7 @@ def validate_tribute_upload(uploaded):
     return None
 
 def party_json(party):
-    return {"id": party.id, "name": party.name, "phone": party.phone, "assignedTo": party.assigned_to, "request": party.request_status, "tribute": party.tribute_status, "createdAt": party.created_at.isoformat()}
+    return {"id": party.id, "name": party.name, "phone": party.phone, "assignedTo": party.assigned_to, "mainCommittee": party.main_committee, "request": party.request_status, "tribute": party.tribute_status, "createdAt": party.created_at.isoformat()}
 
 @csrf_exempt
 @require_http_methods(["GET", "POST"])
@@ -101,9 +101,12 @@ def tribute_parties(request):
         name = str(payload.get("name", "")).strip()
         phone = str(payload.get("phone", "")).strip()
         assigned_to = str(payload.get("assignedTo", "")).strip()
+        main_committee = str(payload.get("mainCommittee", TributeParty.MainCommittee.GENERAL)).strip().lower()
         if not name:
             return JsonResponse({"error": "Person or organisation is required."}, status=400)
-        party = TributeParty.objects.create(name=name, phone=phone, assigned_to=assigned_to)
+        if main_committee not in TributeParty.MainCommittee.values:
+            return JsonResponse({"error": "Choose a valid main committee."}, status=400)
+        party = TributeParty.objects.create(name=name, phone=phone, assigned_to=assigned_to, main_committee=main_committee)
         logger.info("tribute_party_created id=%s", party.id)
         return JsonResponse({"party": party_json(party)}, status=201)
     except (json.JSONDecodeError, TypeError, ValueError):
