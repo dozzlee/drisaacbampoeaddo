@@ -5,11 +5,13 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core import signing
 from django.db import IntegrityError, connection, transaction
+from django.utils import timezone
 from django.http import FileResponse, JsonResponse, HttpResponseRedirect
 from django.shortcuts import get_object_or_404
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 from .models import ActivityAttachment, ActivitySubcommittee, ActivityTask, MediaAsset, TributeAttachment, TributeParty, UserProfile, normalize_phone
+from .pdf_exports import build_tribute_register_pdf
 
 logger = logging.getLogger(__name__)
 
@@ -87,7 +89,7 @@ def validate_tribute_upload(uploaded):
     return None
 
 def party_json(party):
-    return {"id": party.id, "name": party.name, "phone": party.phone, "request": party.request_status, "tribute": party.tribute_status, "createdAt": party.created_at.isoformat()}
+    return {"id": party.id, "name": party.name, "phone": party.phone, "assignedTo": party.assigned_to, "request": party.request_status, "tribute": party.tribute_status, "createdAt": party.created_at.isoformat()}
 
 @csrf_exempt
 @require_http_methods(["GET", "POST"])
@@ -98,14 +100,50 @@ def tribute_parties(request):
         payload = json.loads(request.body)
         name = str(payload.get("name", "")).strip()
         phone = str(payload.get("phone", "")).strip()
+        assigned_to = str(payload.get("assignedTo", "")).strip()
         if not name:
             return JsonResponse({"error": "Person or organisation is required."}, status=400)
-        party = TributeParty.objects.create(name=name, phone=phone)
+        party = TributeParty.objects.create(name=name, phone=phone, assigned_to=assigned_to)
         logger.info("tribute_party_created id=%s", party.id)
         return JsonResponse({"party": party_json(party)}, status=201)
     except (json.JSONDecodeError, TypeError, ValueError):
         logger.warning("tribute_party_create_invalid_payload")
         return JsonResponse({"error": "Invalid party data."}, status=400)
+
+@csrf_exempt
+@require_POST
+def tribute_party_detail(request, party_id):
+    denied = admin_required(request)
+    if denied: return denied
+    party = get_object_or_404(TributeParty, pk=party_id)
+    try:
+        payload = json.loads(request.body)
+        assigned_to = str(payload.get("assignedTo", party.assigned_to)).strip()
+        if len(assigned_to) > 255:
+            return JsonResponse({"error": "Responsible person must be 255 characters or fewer."}, status=400)
+        party.assigned_to = assigned_to
+        party.save(update_fields=["assigned_to"])
+        return JsonResponse({"party": party_json(party)})
+    except (json.JSONDecodeError, TypeError, ValueError):
+        return JsonResponse({"error": "Invalid tribute record."}, status=400)
+
+@require_GET
+def export_tributes_pdf(request):
+    role = access_role(request)
+    if not role:
+        return JsonResponse({"error": "A valid access session is required."}, status=401)
+    if role == UserProfile.Role.MEDIA:
+        return JsonResponse({"error": "Team or administrator access is required."}, status=403)
+    parties = list(TributeParty.objects.all())
+    attachments_by_party = {}
+    latest_by_party = {party.id: party.created_at for party in parties}
+    for item in TributeAttachment.objects.all():
+        attachments_by_party.setdefault(item.party_id, []).append(item)
+        latest_by_party[item.party_id] = max(latest_by_party.get(item.party_id, item.uploaded_at), item.uploaded_at)
+    parties.sort(key=lambda party: (latest_by_party.get(party.id, party.created_at), party.id), reverse=True)
+    pdf = build_tribute_register_pdf(parties, attachments_by_party)
+    filename = f"tribute-register-{timezone.localdate().isoformat()}.pdf"
+    return FileResponse(pdf, as_attachment=True, filename=filename, content_type="application/pdf")
 
 @require_GET
 def tribute_files(request):

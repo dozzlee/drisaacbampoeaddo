@@ -28,6 +28,7 @@ class UserProfile(models.Model):
 class TributeParty(models.Model):
     name = models.CharField(max_length=255)
     phone = models.CharField(max_length=32, blank=True)
+    assigned_to = models.CharField(max_length=255, blank=True)
     request_status = models.CharField(max_length=32, default="Not recorded")
     tribute_status = models.CharField(max_length=32, default="Not recorded")
     created_at = models.DateTimeField(auto_now_add=True)

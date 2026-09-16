@@ -122,14 +122,57 @@ class HubFlowTests(TestCase):
     def test_create_party_is_returned_to_a_fresh_client(self):
         response = self.client.post(
             "/api/tributes/parties",
-            data='{"name":"New Persistent Party","phone":"0240000000"}',
+            data='{"name":"New Persistent Party","phone":"0240000000","assignedTo":"Ama Mensah"}',
             content_type="application/json",
         )
         self.assertEqual(response.status_code, 201)
         record = response.json()["party"]
         self.assertIsInstance(record["id"], int)
+        self.assertEqual(record["assignedTo"], "Ama Mensah")
         parties = Client().get("/api/tributes/parties").json()["parties"]
         self.assertIn(record, parties)
+
+    def test_responsible_person_update_is_admin_only(self):
+        party = TributeParty.objects.create(name="Ownership Test")
+        payload = '{"assignedTo":"Kofi Bampoe-Addo"}'
+        denied = self.client.post(
+            f"/api/tributes/parties/{party.id}",
+            data=payload,
+            content_type="application/json",
+            **self.auth("TEAMS2026"),
+        )
+        self.assertEqual(denied.status_code, 403)
+        updated = self.client.post(
+            f"/api/tributes/parties/{party.id}",
+            data=payload,
+            content_type="application/json",
+            **self.auth("ADMIN2026"),
+        )
+        self.assertEqual(updated.status_code, 200)
+        self.assertEqual(updated.json()["party"]["assignedTo"], "Kofi Bampoe-Addo")
+        party.refresh_from_db()
+        self.assertEqual(party.assigned_to, "Kofi Bampoe-Addo")
+
+    def test_full_tribute_register_exports_as_pdf(self):
+        party = TributeParty.objects.create(
+            name="Ministry of Agriculture",
+            phone="0240000000",
+            assigned_to="Sena",
+            request_status="Sent",
+            tribute_status="Received",
+        )
+        TributeParty.objects.create(name="Accra Academy", assigned_to="Angelo")
+        uploaded = SimpleUploadedFile("ministry-tribute.pdf", b"tribute", content_type="application/pdf")
+        self.client.post(f"/api/tributes/{party.id}/files", {"file": uploaded, "type": "tribute"})
+
+        response = self.client.get("/api/tributes/export", **self.auth("TEAMS2026"))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Type"], "application/pdf")
+        self.assertIn("tribute-register-", response["Content-Disposition"])
+        self.assertTrue(b"".join(response.streaming_content).startswith(b"%PDF"))
+
+        denied = self.client.get("/api/tributes/export", **self.auth("MEDIA2026"))
+        self.assertEqual(denied.status_code, 403)
 
     def test_invalid_party_and_unknown_upload_are_rejected(self):
         invalid = self.client.post("/api/tributes/parties", data='{"name":"  "}', content_type="application/json")

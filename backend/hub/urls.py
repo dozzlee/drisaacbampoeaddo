@@ -3,6 +3,8 @@ from . import views
 urlpatterns = [
     path("health/", views.health), path("access/", views.access_session), path("users/", views.users),
     path("tributes/parties", views.tribute_parties),
+    path("tributes/parties/<int:party_id>", views.tribute_party_detail),
+    path("tributes/export", views.export_tributes_pdf),
     path("tributes/files", views.tribute_files),
     path("tributes/files/<uuid:attachment_id>/download", views.download_tribute_file),
     path("tributes/files/<uuid:attachment_id>/edit", views.edit_tribute_file),
