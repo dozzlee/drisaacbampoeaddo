@@ -35,9 +35,11 @@ def access_role(request):
 def access_session(request):
     if request.method == "GET":
         role = access_role(request)
-        if not role:
-            return JsonResponse({"error": "Your access session is invalid or has expired."}, status=401)
-        return JsonResponse({"role": role})
+        if role:
+            return JsonResponse({"role": role})
+        role = UserProfile.Role.USER
+        token = signing.dumps({"role": role}, salt=ACCESS_TOKEN_SALT, compress=True)
+        return JsonResponse({"role": role, "token": token})
     try:
         payload = json.loads(request.body)
         code = re.sub(r"[-\s]", "", str(payload.get("code", "")).upper())
