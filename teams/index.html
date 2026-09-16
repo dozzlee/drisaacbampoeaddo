@@ -5,14 +5,38 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="robots" content="noindex, nofollow, noarchive">
   <title>Oko and Atteh Teams Hub</title>
-  <meta name="description" content="Coordination hub for the Isaac Bampoe Addo funeral planning team.">
+  <meta name="description" content="Private coordination hub for the Isaac Bampoe Addo funeral planning team.">
   <link rel="icon" href="../logo/logo_new.png" type="image/png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="teams.css?v=20260916-21">
+  <link rel="stylesheet" href="teams.css?v=20260916-22">
 </head>
 <body>
+  <section class="gate" id="accessGate" aria-labelledby="gateTitle">
+    <div class="gate-art" aria-hidden="true"><div class="art-orbit"></div><span>OA</span><small>Teams Hub</small></div>
+    <div class="gate-panel">
+      <div class="gate-logo"><span>OA</span><strong>Oko and Atteh<br>Teams Hub</strong></div>
+      <div class="gate-copy"><p class="eyebrow">Private team workspace</p><h1 id="gateTitle">Welcome back</h1><p>Enter the access code shared with you by the funeral coordination team.</p></div>
+      <form class="access-form" id="accessForm">
+        <label for="accessCode">Access code</label>
+        <input id="accessCode" name="accessCode" type="text" autocomplete="one-time-code" autocapitalize="characters" spellcheck="false" placeholder="Enter your access code" required>
+        <button class="primary-button" type="submit">Continue</button>
+        <p class="form-note" id="accessMessage" aria-live="polite">Use the private access code supplied to you.</p>
+      </form>
+      <p class="privacy-note">Restricted planning space. Keep access codes and team records private.</p>
+    </div>
+  </section>
+
+  <section class="onboarding" id="onboarding" hidden aria-labelledby="onboardingTitle">
+    <form class="onboarding-card" id="profileForm">
+      <button class="plain-button" type="button" id="backToCode">← Back</button><div class="onboarding-icon">OA</div>
+      <p class="eyebrow">Complete your profile</p><h1 id="onboardingTitle">Tell us who you are</h1><p>Your access code has already assigned your role.</p>
+      <div class="form-grid"><label>Full name<input name="fullName" autocomplete="name" required></label><label>Phone number<input name="phone" type="tel" autocomplete="tel" required></label></div>
+      <div class="assigned-role"><span>Assigned role</span><strong id="assignedRole">Team Member</strong></div><button class="primary-button" type="submit">Open dashboard</button>
+    </form>
+  </section>
+
   <div class="app-shell" id="appShell" hidden>
     <aside class="sidebar" id="sidebar">
       <div class="brand"><span>OA</span><strong>Oko and Atteh</strong></div>
@@ -20,9 +44,10 @@
         <button class="active" data-view="tasks"><span class="nav-icon">✓</span><span><strong>Activities</strong><small>Committees, tasks and calendar</small></span></button>
         <button data-view="media"><span class="nav-icon">▧</span><span><strong>Media and Documents</strong><small>Central file library</small></span></button>
         <button data-view="tributes"><span class="nav-icon">✦</span><span><strong>Tributes</strong><small>Invitations and files</small></span></button>
+        <button data-view="access" id="accessNav"><span class="nav-icon">⌾</span><span><strong>Access control</strong><small>Admin only</small></span></button>
       </nav>
       <div class="sidebar-card"><span>Funeral</span><strong>7 November 2026</strong><small id="sidebarCountdown">54 days remaining</small></div>
-      <div class="sidebar-profile"><span class="avatar" id="profileInitials">OA</span><div><strong id="profileName">Team workspace</strong><small id="profileRole">Open access</small></div></div>
+      <div class="sidebar-profile"><span class="avatar" id="profileInitials">TM</span><div><strong id="profileName">Team Member</strong><small id="profileRole">Normal User</small></div><button type="button" id="signOut" aria-label="Sign out">↗</button></div>
     </aside>
 
     <main class="workspace">
@@ -83,6 +108,6 @@
   <dialog class="modal media-modal" id="mediaModal"><form id="mediaForm"><div class="modal-head"><div><p class="eyebrow">Media and Documents</p><h2 id="mediaModalTitle">Add Media or Document</h2></div><button type="button" id="closeMediaModal" aria-label="Close">×</button></div><div id="mediaDetailsStep"><div class="form-grid"><label>Title<input name="title" required></label><label>File type<select name="assetType" required><option value="media">Media</option><option value="document">Document</option></select></label></div><label>Category<select name="category" id="mediaCategory" required></select></label><label>Short description<textarea name="description" required></textarea></label><label>File <small id="mediaFileHelp">Required</small><input name="file" type="file" accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv"></label><details><summary>More details</summary><div class="form-grid"><label>Labels <small>comma-separated</small><input name="labels" placeholder="approved, portrait, print"></label><label>Date created<input name="dateCreated" type="date"></label><label>Event or activity<input name="eventActivity"></label><label>Responsible committee<input name="responsibleCommittee"></label><label>Uploaded by<input name="uploadedBy"></label><label>Owner or contact<input name="ownerContact"></label><label>Phone<input name="phone" type="tel"></label><label>Confidentiality<select name="confidentiality"><option>Internal</option><option>Committee</option><option>Media partners</option><option>Public</option></select></label><label>Version<input name="version" value="1.0"></label><label>Document status<select name="status"><option value="draft">Draft</option><option value="review">Under review</option><option value="approved">Approved</option><option value="archived">Archived</option></select></label></div><label>Notes<textarea name="notes"></textarea></label><label class="check-label"><input name="available" type="checkbox"> Make available to media partners</label></details></div><section class="upload-preview" id="mediaPreviewStep" hidden><div id="mediaUploadPreview"></div></section><p class="form-help" id="mediaFormMessage" aria-live="polite"></p><menu><button type="button" class="secondary-button" id="mediaBack" hidden>Back</button><button type="button" class="secondary-button" id="cancelMedia">Cancel</button><button type="button" class="primary-button" id="mediaPreviewButton">Preview</button><button type="submit" class="primary-button" id="mediaConfirm" hidden>Confirm upload</button></menu></form></dialog>
   <dialog class="modal update-modal" id="taskUpdateModal"><form id="taskUpdateForm"><div class="modal-head"><div><p class="eyebrow">Activities report</p><h2>Generate activities update</h2><p>Select a committee and the exact range of activities to include.</p></div><button type="button" id="closeTaskUpdate" aria-label="Close">×</button></div><div class="report-range-fields"><label>Committee<select name="scope"><option value="all">All committees</option><option value="funeral">Funeral Committee</option><option value="brochure">Brochure Committee</option><option value="oko">Logistics Uncle Oko</option></select></label><label>First activity<select name="rangeStart"></select></label><label>Last activity<select name="rangeEnd"></select></label></div><p class="range-summary" id="taskUpdateRangeSummary" aria-live="polite"></p><div class="task-update-preview"><canvas id="taskUpdateCanvas" width="1080" height="1350"></canvas></div><menu><button type="button" class="secondary-button" id="regenerateTaskUpdate">Refresh preview</button><button type="button" class="primary-button" id="downloadTaskUpdate">Download activities image</button></menu></form></dialog>
   <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
-  <script src="teams.js?v=20260916-21"></script>
+  <script src="teams.js?v=20260916-22"></script>
 </body>
 </html>

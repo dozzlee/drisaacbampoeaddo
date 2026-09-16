@@ -12,15 +12,6 @@ class HubFlowTests(TestCase):
         self.assertEqual(response.status_code, 200)
         return {"HTTP_AUTHORIZATION": f"Bearer {response.json()['token']}"}
 
-    def test_workspace_opens_without_a_passcode(self):
-        response = self.client.get("/api/access/")
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json()["role"], "user")
-        token = response.json()["token"]
-        self.assertTrue(token)
-        denied = self.client.get("/api/users/", HTTP_AUTHORIZATION=f"Bearer {token}")
-        self.assertEqual(denied.status_code, 403)
-
     def test_uncle_oko_tribute_parties_are_seeded(self):
         expected = {
             "Ministry of Agriculture": "Minadi",
