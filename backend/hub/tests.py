@@ -78,6 +78,29 @@ class HubFlowTests(TestCase):
         self.assertEqual(download.status_code, 200)
         self.assertEqual(b"".join(download.streaming_content), b"tribute-file-content")
 
+    def test_supporting_files_and_tributes_are_stored_separately(self):
+        party = TributeParty.objects.create(name="Two Upload Types")
+        supporting = SimpleUploadedFile("request-letter.pdf", b"request", content_type="application/pdf")
+        tribute = SimpleUploadedFile("final-tribute.pdf", b"tribute", content_type="application/pdf")
+
+        supporting_response = self.client.post(f"/api/tributes/{party.id}/files", {"file": supporting, "type": "file"})
+        tribute_response = self.client.post(f"/api/tributes/{party.id}/files", {"file": tribute, "type": "tribute"})
+
+        self.assertEqual(supporting_response.status_code, 201)
+        self.assertEqual(tribute_response.status_code, 201)
+        self.assertEqual(supporting_response.json()["file"]["type"], "file")
+        self.assertEqual(tribute_response.json()["file"]["type"], "tribute")
+        self.assertEqual(set(TributeAttachment.objects.filter(party_id=party.id).values_list("attachment_type", flat=True)), {"file", "tribute"})
+        party.refresh_from_db()
+        self.assertEqual(party.tribute_status, "Received")
+
+    def test_invalid_tribute_upload_type_is_rejected(self):
+        party = TributeParty.objects.create(name="Invalid Type")
+        uploaded = SimpleUploadedFile("document.pdf", b"content", content_type="application/pdf")
+        response = self.client.post(f"/api/tributes/{party.id}/files", {"file": uploaded, "type": "unknown"})
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(TributeAttachment.objects.filter(party_id=party.id).count(), 0)
+
     def test_create_party_is_returned_to_a_fresh_client(self):
         response = self.client.post(
             "/api/tributes/parties",

@@ -35,7 +35,7 @@ def users(request):
     except IntegrityError: return JsonResponse({"error": "This phone number already belongs to a user."}, status=409)
 
 def attachment_json(item):
-    return {"id": str(item.id), "name": item.original_name, "href": f"/api/tributes/files/{item.id}/download", "size": item.size_bytes, "uploadedAt": item.uploaded_at.isoformat()}
+    return {"id": str(item.id), "name": item.original_name, "type": item.attachment_type, "href": f"/api/tributes/files/{item.id}/download", "size": item.size_bytes, "uploadedAt": item.uploaded_at.isoformat()}
 
 ALLOWED_TRIBUTE_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif", "application/pdf", "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"}
 
@@ -47,7 +47,7 @@ def validate_tribute_upload(uploaded):
     return None
 
 def party_json(party):
-    return {"id": party.id, "name": party.name, "phone": party.phone, "request": party.request_status, "tribute": party.tribute_status}
+    return {"id": party.id, "name": party.name, "phone": party.phone, "request": party.request_status, "tribute": party.tribute_status, "createdAt": party.created_at.isoformat()}
 
 @csrf_exempt
 @require_http_methods(["GET", "POST"])
@@ -76,16 +76,23 @@ def tribute_files(request):
 @csrf_exempt
 @require_POST
 def upload_tribute_file(request, party_id):
-    if not TributeParty.objects.filter(pk=party_id).exists():
+    party = TributeParty.objects.filter(pk=party_id).first()
+    if not party:
         return JsonResponse({"error": "Tribute party not found."}, status=404)
     uploaded = request.FILES.get("file")
     if not uploaded: return JsonResponse({"error": "Choose a file to upload."}, status=400)
+    attachment_type = str(request.POST.get("type", TributeAttachment.AttachmentType.FILE)).strip().lower()
+    if attachment_type not in TributeAttachment.AttachmentType.values:
+        return JsonResponse({"error": "Choose a valid upload type."}, status=400)
     validation_error = validate_tribute_upload(uploaded)
     if validation_error: return validation_error
     try:
         with transaction.atomic():
-            item = TributeAttachment.objects.create(party_id=party_id, file=uploaded, original_name=uploaded.name, mime_type=uploaded.content_type, size_bytes=uploaded.size)
-        logger.info("tribute_file_created id=%s party_id=%s size=%s", item.id, party_id, uploaded.size)
+            item = TributeAttachment.objects.create(party_id=party_id, attachment_type=attachment_type, file=uploaded, original_name=uploaded.name, mime_type=uploaded.content_type, size_bytes=uploaded.size)
+            if attachment_type == TributeAttachment.AttachmentType.TRIBUTE and party.tribute_status != "Received":
+                party.tribute_status = "Received"
+                party.save(update_fields=["tribute_status"])
+        logger.info("tribute_file_created id=%s party_id=%s type=%s size=%s", item.id, party_id, attachment_type, uploaded.size)
         return JsonResponse({"file": attachment_json(item)}, status=201)
     except Exception:
         logger.exception("tribute_file_create_failed party_id=%s", party_id)
@@ -97,6 +104,9 @@ def edit_tribute_file(request, attachment_id):
     item = get_object_or_404(TributeAttachment, pk=attachment_id)
     replacement = request.FILES.get("file")
     new_name = str(request.POST.get("name", "")).strip()
+    attachment_type = str(request.POST.get("type", item.attachment_type)).strip().lower()
+    if attachment_type not in TributeAttachment.AttachmentType.values:
+        return JsonResponse({"error": "Choose a valid upload type."}, status=400)
     if not new_name and not replacement:
         return JsonResponse({"error": "Enter a file name or choose a replacement file."}, status=400)
     if replacement:
@@ -104,6 +114,7 @@ def edit_tribute_file(request, attachment_id):
         if validation_error: return validation_error
     old_storage = item.file.storage
     old_path = item.file.name
+    old_type = item.attachment_type
     try:
         with transaction.atomic():
             if replacement:
@@ -111,7 +122,15 @@ def edit_tribute_file(request, attachment_id):
                 item.mime_type = replacement.content_type
                 item.size_bytes = replacement.size
             item.original_name = new_name or replacement.name
+            item.attachment_type = attachment_type
             item.save()
+            party = TributeParty.objects.filter(pk=item.party_id).first()
+            if party and attachment_type == TributeAttachment.AttachmentType.TRIBUTE and party.tribute_status != "Received":
+                party.tribute_status = "Received"
+                party.save(update_fields=["tribute_status"])
+            if party and old_type == TributeAttachment.AttachmentType.TRIBUTE and attachment_type != old_type and not TributeAttachment.objects.filter(party_id=item.party_id, attachment_type=TributeAttachment.AttachmentType.TRIBUTE).exclude(pk=item.pk).exists():
+                party.tribute_status = "Not recorded"
+                party.save(update_fields=["tribute_status"])
             if replacement and old_path and old_path != item.file.name:
                 transaction.on_commit(lambda: old_storage.delete(old_path))
         logger.info("tribute_file_updated id=%s replaced=%s", item.id, bool(replacement))
@@ -126,9 +145,13 @@ def delete_tribute_file(request, attachment_id):
     item = get_object_or_404(TributeAttachment, pk=attachment_id)
     storage = item.file.storage
     stored_path = item.file.name
+    party_id = item.party_id
+    attachment_type = item.attachment_type
     try:
         with transaction.atomic():
             item.delete()
+            if attachment_type == TributeAttachment.AttachmentType.TRIBUTE and not TributeAttachment.objects.filter(party_id=party_id, attachment_type=TributeAttachment.AttachmentType.TRIBUTE).exists():
+                TributeParty.objects.filter(pk=party_id).update(tribute_status="Not recorded")
             if stored_path:
                 transaction.on_commit(lambda: storage.delete(stored_path))
         logger.info("tribute_file_deleted id=%s", attachment_id)

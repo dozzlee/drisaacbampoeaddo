@@ -39,8 +39,13 @@ class TributeParty(models.Model):
         return self.name
 
 class TributeAttachment(models.Model):
+    class AttachmentType(models.TextChoices):
+        FILE = "file", "Supporting file"
+        TRIBUTE = "tribute", "Tribute"
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     party_id = models.PositiveBigIntegerField(db_index=True)
+    attachment_type = models.CharField(max_length=12, choices=AttachmentType.choices, default=AttachmentType.FILE, db_index=True)
     file = models.FileField(upload_to="tributes/%Y/%m/")
     original_name = models.CharField(max_length=255)
     mime_type = models.CharField(max_length=120)
