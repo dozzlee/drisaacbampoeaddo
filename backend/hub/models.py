@@ -95,6 +95,7 @@ class ActivitySubcommittee(models.Model):
     class MainCommittee(models.TextChoices):
         FUNERAL = "funeral", "Funeral Committee"
         BROCHURE = "brochure", "Brochure Committee"
+        OKO = "oko", "Logistics Uncle Oko"
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     main_committee = models.CharField(max_length=16, choices=MainCommittee.choices)
@@ -115,6 +116,7 @@ class ActivityTask(models.Model):
     class MainCommittee(models.TextChoices):
         FUNERAL = "funeral", "Funeral Committee"
         BROCHURE = "brochure", "Brochure Committee"
+        OKO = "oko", "Logistics Uncle Oko"
 
     class Status(models.TextChoices):
         NOT_STARTED = "not-started", "Not Started"

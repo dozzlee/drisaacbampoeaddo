@@ -7,6 +7,22 @@ from .models import ActivityAttachment, ActivitySubcommittee, ActivityTask, Medi
 
 @override_settings(MEDIA_ROOT=tempfile.mkdtemp())
 class HubFlowTests(TestCase):
+    def test_uncle_oko_is_a_separate_main_committee(self):
+        tasks = ActivityTask.objects.filter(source_key__startswith="oko-")
+        self.assertEqual(tasks.count(), 12)
+        self.assertFalse(tasks.exclude(main_committee="oko").exists())
+        self.assertTrue(ActivitySubcommittee.objects.filter(main_committee="oko", name="Tributes").exists())
+
+        group = ActivitySubcommittee.objects.create(main_committee="oko", name="Test Oko Group")
+        response = self.client.post(
+            "/api/activities",
+            {"task": "Test Oko task", "mainCommittee": "oko", "subcommitteeId": str(group.id)},
+            content_type="application/json",
+            HTTP_X_TEAMS_ROLE="admin",
+        )
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.json()["task"]["mainCommittee"], "oko")
+
     def test_activity_crud_is_persistent_and_admin_only(self):
         group = ActivitySubcommittee.objects.create(main_committee="funeral", name="Test Logistics")
         payload = {
