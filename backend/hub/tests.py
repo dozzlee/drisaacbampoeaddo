@@ -7,6 +7,11 @@ from .models import ActivityAttachment, ActivitySubcommittee, ActivityTask, Medi
 
 @override_settings(MEDIA_ROOT=tempfile.mkdtemp())
 class HubFlowTests(TestCase):
+    def auth(self, code):
+        response = self.client.post("/api/access/", data=f'{{"code":"{code}"}}', content_type="application/json")
+        self.assertEqual(response.status_code, 200)
+        return {"HTTP_AUTHORIZATION": f"Bearer {response.json()['token']}"}
+
     def test_uncle_oko_is_a_separate_main_committee(self):
         tasks = ActivityTask.objects.filter(source_key__startswith="oko-")
         self.assertEqual(tasks.count(), 12)
@@ -18,7 +23,7 @@ class HubFlowTests(TestCase):
             "/api/activities",
             {"task": "Test Oko task", "mainCommittee": "oko", "subcommitteeId": str(group.id)},
             content_type="application/json",
-            HTTP_X_TEAMS_ROLE="admin",
+            **self.auth("ADMIN2026"),
         )
         self.assertEqual(response.status_code, 201)
         self.assertEqual(response.json()["task"]["mainCommittee"], "oko")
@@ -33,7 +38,7 @@ class HubFlowTests(TestCase):
         }
         denied = self.client.post("/api/activities", payload, content_type="application/json")
         self.assertEqual(denied.status_code, 403)
-        created = self.client.post("/api/activities", payload, content_type="application/json", HTTP_X_TEAMS_ROLE="admin")
+        created = self.client.post("/api/activities", payload, content_type="application/json", **self.auth("ADMIN2026"))
         self.assertEqual(created.status_code, 201)
         record = created.json()["task"]
         self.assertEqual(record["supportingMembers"], ["Kojo", "Esi"])
@@ -41,30 +46,43 @@ class HubFlowTests(TestCase):
         self.assertIn(record["id"], [item["id"] for item in listing])
         payload["progress"] = 100
         payload["status"] = "completed"
-        updated = self.client.post(f"/api/activities/{record['id']}", payload, content_type="application/json", HTTP_X_TEAMS_ROLE="admin")
+        updated = self.client.post(f"/api/activities/{record['id']}", payload, content_type="application/json", **self.auth("ADMIN2026"))
         self.assertEqual(updated.json()["task"]["progress"], 100)
 
     def test_activity_rejects_invalid_group_and_manages_attachment(self):
         invalid = self.client.post(
             "/api/activities", {"task": "Invalid", "mainCommittee": "funeral", "subcommitteeId": "not-a-uuid"},
-            content_type="application/json", HTTP_X_TEAMS_ROLE="admin",
+            content_type="application/json", **self.auth("ADMIN2026"),
         )
         self.assertEqual(invalid.status_code, 400)
         group = ActivitySubcommittee.objects.create(main_committee="brochure", name="Test Editorial")
         task = ActivityTask.objects.create(title="Proofread", main_committee="brochure", subcommittee=group)
         uploaded = SimpleUploadedFile("notes.pdf", b"activity-notes", content_type="application/pdf")
-        response = self.client.post(f"/api/activities/{task.id}/files", {"file": uploaded}, HTTP_X_TEAMS_ROLE="admin")
+        response = self.client.post(f"/api/activities/{task.id}/files", {"file": uploaded}, **self.auth("ADMIN2026"))
         self.assertEqual(response.status_code, 201)
         self.assertEqual(ActivityAttachment.objects.filter(task=task).count(), 1)
         download = self.client.get(response.json()["file"]["href"])
         self.assertEqual(b"".join(download.streaming_content), b"activity-notes")
 
     def test_phone_number_maps_to_one_user(self):
-        first = self.client.post("/api/users/", data='{"name":"Ama","phone":"024 123 4567","role":"user"}', content_type="application/json")
-        second = self.client.post("/api/users/", data='{"name":"Someone Else","phone":"+233 24 123 4567","role":"admin"}', content_type="application/json")
+        first = self.client.post("/api/users/", data='{"name":"Ama","phone":"024 123 4567"}', content_type="application/json", **self.auth("TEAMS2026"))
+        second = self.client.post("/api/users/", data='{"name":"Someone Else","phone":"+233 24 123 4567"}', content_type="application/json", **self.auth("ADMIN2026"))
         self.assertEqual(first.status_code, 201); self.assertEqual(second.status_code, 200)
         self.assertEqual(UserProfile.objects.count(), 1)
         self.assertEqual(first.json()["user"]["id"], second.json()["user"]["id"])
+        self.assertEqual(first.json()["user"]["role"], "user")
+        self.assertEqual(second.json()["user"]["role"], "admin")
+
+    def test_team_code_cannot_open_admin_access_even_for_existing_admin_phone(self):
+        admin = self.client.post("/api/users/", data='{"name":"Admin","phone":"024 111 2222"}', content_type="application/json", **self.auth("ADMIN2026"))
+        self.assertEqual(admin.json()["user"]["role"], "admin")
+        team_auth = self.auth("TEAMS2026")
+        team = self.client.post("/api/users/", data='{"name":"Admin","phone":"024 111 2222"}', content_type="application/json", **team_auth)
+        self.assertEqual(team.json()["user"]["role"], "user")
+        denied = self.client.get("/api/users/", **team_auth)
+        self.assertEqual(denied.status_code, 403)
+        forged = self.client.get("/api/users/", HTTP_X_TEAMS_ROLE="admin")
+        self.assertEqual(forged.status_code, 401)
 
     def test_upload_list_and_download_tribute_file(self):
         party = TributeParty.objects.create(name="Persistent Party")
@@ -194,7 +212,7 @@ class HubFlowTests(TestCase):
         response = self.client.post(
             "/api/media",
             {"title": "Official portrait", "assetType": "media", "category": "Official Photographs", "description": "Approved portrait", "file": uploaded},
-            HTTP_X_TEAMS_ROLE="admin",
+            **self.auth("ADMIN2026"),
         )
         self.assertEqual(response.status_code, 201)
         record = response.json()["item"]
@@ -208,13 +226,13 @@ class HubFlowTests(TestCase):
         record = self.client.post(
             "/api/media",
             {"title": "Draft", "assetType": "document", "category": "Funeral Programme", "description": "First draft", "file": original},
-            HTTP_X_TEAMS_ROLE="admin",
+            **self.auth("ADMIN2026"),
         ).json()["item"]
         replacement = SimpleUploadedFile("approved.pdf", b"approved", content_type="application/pdf")
         response = self.client.post(
             f"/api/media/{record['id']}/edit",
             {"title": "Approved programme", "assetType": "document", "category": "Funeral Programme", "description": "Final copy", "labels": "final,print", "status": "approved", "file": replacement},
-            HTTP_X_TEAMS_ROLE="admin",
+            **self.auth("ADMIN2026"),
         )
         self.assertEqual(response.status_code, 200)
         updated = response.json()["item"]
@@ -231,7 +249,7 @@ class HubFlowTests(TestCase):
             response = self.client.post(
                 "/api/media",
                 {"title": "Broken", "assetType": "document", "category": "Invoices", "description": "Must fail", "file": uploaded},
-                HTTP_X_TEAMS_ROLE="admin",
+                **self.auth("ADMIN2026"),
             )
         self.assertEqual(response.status_code, 500)
         self.assertEqual(MediaAsset.objects.count(), before)
@@ -241,7 +259,7 @@ class HubFlowTests(TestCase):
         denied = self.client.post("/api/media", {"title": "No", "assetType": "document", "category": "Invoices", "description": "No", "file": uploaded})
         self.assertEqual(denied.status_code, 403)
         invalid = SimpleUploadedFile("file.pdf", b"content", content_type="application/pdf")
-        response = self.client.post("/api/media", {"title": "", "assetType": "document", "category": "", "description": "", "file": invalid}, HTTP_X_TEAMS_ROLE="admin")
+        response = self.client.post("/api/media", {"title": "", "assetType": "document", "category": "", "description": "", "file": invalid}, **self.auth("ADMIN2026"))
         self.assertEqual(response.status_code, 400)
 
     def test_media_remove_deletes_metadata_and_file(self):
@@ -249,12 +267,12 @@ class HubFlowTests(TestCase):
         record = self.client.post(
             "/api/media",
             {"title": "Remove", "assetType": "document", "category": "Invoices", "description": "Temporary", "file": uploaded},
-            HTTP_X_TEAMS_ROLE="admin",
+            **self.auth("ADMIN2026"),
         ).json()["item"]
         asset = MediaAsset.objects.get(pk=record["id"])
         path = Path(asset.file.path)
         with self.captureOnCommitCallbacks(execute=True):
-            response = self.client.delete(f"/api/media/{record['id']}", HTTP_X_TEAMS_ROLE="admin")
+            response = self.client.delete(f"/api/media/{record['id']}", **self.auth("ADMIN2026"))
         self.assertEqual(response.status_code, 200)
         self.assertFalse(path.exists())
         self.assertFalse(MediaAsset.objects.filter(pk=record["id"]).exists())
@@ -263,7 +281,7 @@ class HubFlowTests(TestCase):
         MediaAsset.objects.create(title="Shared", asset_type="media", category="Portraits", description="Shared", original_name="shared.jpg", mime_type="image/jpeg", external_url="/shared.jpg", available_to_media=True)
         MediaAsset.objects.create(title="Private", asset_type="media", category="Portraits", description="Private", original_name="private.jpg", mime_type="image/jpeg", external_url="/private.jpg", available_to_media=False)
         MediaAsset.objects.create(title="Archived", asset_type="document", category="Minutes", description="Archived", original_name="old.pdf", mime_type="application/pdf", external_url="/old.pdf", available_to_media=True, document_status="archived")
-        records = self.client.get("/api/media", HTTP_X_TEAMS_ROLE="media").json()["items"]
+        records = self.client.get("/api/media", **self.auth("MEDIA2026")).json()["items"]
         titles = {item["title"] for item in records}
         self.assertIn("Shared", titles)
         self.assertNotIn("Private", titles)
@@ -274,7 +292,7 @@ class HubFlowTests(TestCase):
         record = self.client.post(
             "/api/media",
             {"title": "Missing", "assetType": "document", "category": "Invoices", "description": "Missing", "file": uploaded},
-            HTTP_X_TEAMS_ROLE="admin",
+            **self.auth("ADMIN2026"),
         ).json()["item"]
         asset = MediaAsset.objects.get(pk=record["id"])
         Path(asset.file.path).unlink()

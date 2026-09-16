@@ -1,7 +1,9 @@
 import json
 import logging
 import re
+from django.conf import settings
 from django.core.exceptions import ValidationError
+from django.core import signing
 from django.db import IntegrityError, connection, transaction
 from django.http import FileResponse, JsonResponse, HttpResponseRedirect
 from django.shortcuts import get_object_or_404
@@ -11,7 +13,39 @@ from .models import ActivityAttachment, ActivitySubcommittee, ActivityTask, Medi
 
 logger = logging.getLogger(__name__)
 
-def user_json(user): return {"id": str(user.id), "name": user.full_name, "phone": user.phone, "role": user.role}
+ACCESS_TOKEN_SALT = "hub.access.v1"
+
+def user_json(user, role=None): return {"id": str(user.id), "name": user.full_name, "phone": user.phone, "role": role or user.role}
+
+def access_role(request):
+    authorization = request.headers.get("Authorization", "")
+    if not authorization.startswith("Bearer "):
+        return None
+    try:
+        payload = signing.loads(authorization[7:], salt=ACCESS_TOKEN_SALT, max_age=settings.TEAM_ACCESS_TOKEN_MAX_AGE)
+        role = payload.get("role")
+        return role if role in UserProfile.Role.values else None
+    except (signing.BadSignature, signing.SignatureExpired, TypeError, ValueError):
+        return None
+
+@csrf_exempt
+@require_http_methods(["GET", "POST"])
+def access_session(request):
+    if request.method == "GET":
+        role = access_role(request)
+        if not role:
+            return JsonResponse({"error": "Your access session is invalid or has expired."}, status=401)
+        return JsonResponse({"role": role})
+    try:
+        payload = json.loads(request.body)
+        code = re.sub(r"[-\s]", "", str(payload.get("code", "")).upper())
+        role = settings.TEAM_ACCESS_CODES.get(code)
+        if not role:
+            return JsonResponse({"error": "That code was not recognised. Check it and try again."}, status=403)
+        token = signing.dumps({"role": role}, salt=ACCESS_TOKEN_SALT, compress=True)
+        return JsonResponse({"role": role, "token": token})
+    except (json.JSONDecodeError, TypeError, ValueError):
+        return JsonResponse({"error": "Enter a valid access code."}, status=400)
 
 @require_GET
 def health(request):
@@ -23,14 +57,20 @@ def health(request):
 @csrf_exempt
 @require_http_methods(["GET", "POST"])
 def users(request):
-    if request.method == "GET": return JsonResponse({"users": [user_json(user) for user in UserProfile.objects.order_by("full_name")]})
+    role = access_role(request)
+    if not role:
+        return JsonResponse({"error": "A valid access session is required."}, status=401)
+    if request.method == "GET":
+        if role != UserProfile.Role.ADMIN:
+            return JsonResponse({"error": "Administrator access is required."}, status=403)
+        return JsonResponse({"users": [user_json(user) for user in UserProfile.objects.order_by("full_name")]})
     try:
         payload = json.loads(request.body)
         normalized = normalize_phone(payload.get("phone"))
         existing = UserProfile.objects.filter(normalized_phone=normalized).first()
-        if existing: return JsonResponse({"user": user_json(existing), "created": False})
-        user = UserProfile.objects.create(full_name=payload.get("name", "").strip(), phone=payload.get("phone", "").strip(), role=payload.get("role", UserProfile.Role.USER))
-        return JsonResponse({"user": user_json(user), "created": True}, status=201)
+        if existing: return JsonResponse({"user": user_json(existing, role), "created": False})
+        user = UserProfile.objects.create(full_name=payload.get("name", "").strip(), phone=payload.get("phone", "").strip(), role=role)
+        return JsonResponse({"user": user_json(user, role), "created": True}, status=201)
     except (ValidationError, ValueError, KeyError) as error: return JsonResponse({"error": str(error)}, status=400)
     except IntegrityError: return JsonResponse({"error": "This phone number already belongs to a user."}, status=409)
 
@@ -180,7 +220,7 @@ ALLOWED_LIBRARY_TYPES = {
 }
 
 def request_role(request):
-    return request.headers.get("X-Teams-Role", "user").lower()
+    return access_role(request) or UserProfile.Role.USER
 
 def admin_required(request):
     if request_role(request) != "admin":

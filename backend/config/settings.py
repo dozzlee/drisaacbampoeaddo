@@ -18,3 +18,10 @@ MEDIA_ROOT = Path(os.environ.get("MEDIA_ROOT", "/app/media"))
 MEDIA_URL = "/media/"
 USE_TZ = True
 TIME_ZONE = "Africa/Accra"
+
+TEAM_ACCESS_CODES = {
+    os.environ.get("TEAM_ADMIN_CODE", "ADMIN2026"): "admin",
+    os.environ.get("TEAM_USER_CODE", "TEAMS2026"): "user",
+    os.environ.get("TEAM_MEDIA_CODE", "MEDIA2026"): "media",
+}
+TEAM_ACCESS_TOKEN_MAX_AGE = int(os.environ.get("TEAM_ACCESS_TOKEN_MAX_AGE", "604800"))
