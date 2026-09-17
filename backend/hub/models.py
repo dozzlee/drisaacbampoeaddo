@@ -60,6 +60,23 @@ class TributeAttachment(models.Model):
     uploaded_at = models.DateTimeField(auto_now_add=True)
     class Meta: ordering = ["uploaded_at"]
 
+class MediaAlbum(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    name = models.CharField(max_length=255)
+    description = models.TextField(blank=True)
+    created_by_name = models.CharField(max_length=160, blank=True)
+    created_by_role = models.CharField(max_length=10, choices=UserProfile.Role.choices, default=UserProfile.Role.USER)
+    available_to_media = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-updated_at"]
+
+    def __str__(self):
+        return self.name
+
+
 class MediaAsset(models.Model):
     class AssetType(models.TextChoices):
         MEDIA = "media", "Media"
@@ -72,6 +89,7 @@ class MediaAsset(models.Model):
         ARCHIVED = "archived", "Archived"
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    album = models.ForeignKey(MediaAlbum, null=True, blank=True, on_delete=models.SET_NULL, related_name="assets")
     title = models.CharField(max_length=255)
     asset_type = models.CharField(max_length=12, choices=AssetType.choices)
     category = models.CharField(max_length=160)

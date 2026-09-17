@@ -3,7 +3,7 @@ from pathlib import Path
 from unittest.mock import patch
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import Client, TestCase, override_settings
-from .models import ActivityAttachment, ActivitySubcommittee, ActivityTask, MediaAsset, TributeAttachment, TributeParty, UserProfile
+from .models import ActivityAttachment, ActivitySubcommittee, ActivityTask, MediaAlbum, MediaAsset, TributeAttachment, TributeParty, UserProfile
 
 @override_settings(MEDIA_ROOT=tempfile.mkdtemp())
 class HubFlowTests(TestCase):
@@ -283,6 +283,47 @@ class HubFlowTests(TestCase):
         self.assertTrue(any(item["id"] == record["id"] for item in listing))
         download = Client().get(record["downloadHref"])
         self.assertEqual(b"".join(download.streaming_content), b"persistent-image")
+
+    def test_normal_user_can_create_album_and_upload_pictures(self):
+        auth = self.auth("TEAMS2026")
+        created = self.client.post(
+            "/api/media/albums",
+            data='{"name":"Family pictures","description":"Shared by family","createdBy":"Ama"}',
+            content_type="application/json",
+            **auth,
+        )
+        self.assertEqual(created.status_code, 201)
+        album = created.json()["album"]
+        self.assertEqual(album["uploadLimitBytes"], 1024 ** 3)
+        uploaded = SimpleUploadedFile("family.jpg", b"picture", content_type="image/jpeg")
+        response = self.client.post(f"/api/media/albums/{album['id']}/assets", {"file": uploaded}, **auth)
+        self.assertEqual(response.status_code, 201)
+        detail = self.client.get(f"/api/media/albums/{album['id']}", **auth).json()
+        self.assertEqual(detail["album"]["itemCount"], 1)
+        self.assertEqual(detail["items"][0]["albumId"], album["id"])
+
+    def test_normal_user_album_limit_is_enforced(self):
+        album = MediaAlbum.objects.create(name="At limit", created_by_role="user")
+        MediaAsset.objects.create(
+            album=album, title="Existing", asset_type="media", category="Photo Albums",
+            description="Existing", original_name="existing.jpg", mime_type="image/jpeg",
+            external_url="/existing.jpg", size_bytes=1024 ** 3,
+        )
+        uploaded = SimpleUploadedFile("extra.jpg", b"x", content_type="image/jpeg")
+        response = self.client.post(f"/api/media/albums/{album.id}/assets", {"file": uploaded}, **self.auth("TEAMS2026"))
+        self.assertEqual(response.status_code, 413)
+        self.assertEqual(album.assets.count(), 1)
+
+    def test_media_role_only_sees_shared_albums_and_cannot_create_them(self):
+        MediaAlbum.objects.create(name="Shared album", available_to_media=True)
+        MediaAlbum.objects.create(name="Private album", available_to_media=False)
+        auth = self.auth("MEDIA2026")
+        listing = self.client.get("/api/media/albums", **auth).json()["albums"]
+        names = {album["name"] for album in listing}
+        self.assertIn("Shared album", names)
+        self.assertNotIn("Private album", names)
+        denied = self.client.post("/api/media/albums", data='{"name":"No"}', content_type="application/json", **auth)
+        self.assertEqual(denied.status_code, 403)
 
     def test_media_metadata_edit_and_file_replacement_persist(self):
         original = SimpleUploadedFile("draft.pdf", b"draft", content_type="application/pdf")

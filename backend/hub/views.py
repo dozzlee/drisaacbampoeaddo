@@ -5,12 +5,13 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core import signing
 from django.db import IntegrityError, connection, transaction
+from django.db.models import Sum
 from django.utils import timezone
 from django.http import FileResponse, JsonResponse, HttpResponseRedirect
 from django.shortcuts import get_object_or_404
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
-from .models import ActivityAttachment, ActivitySubcommittee, ActivityTask, MediaAsset, TributeAttachment, TributeParty, UserProfile, normalize_phone
+from .models import ActivityAttachment, ActivitySubcommittee, ActivityTask, MediaAlbum, MediaAsset, TributeAttachment, TributeParty, UserProfile, normalize_phone
 from .pdf_exports import build_tribute_register_pdf
 
 logger = logging.getLogger(__name__)
@@ -260,6 +261,10 @@ ALLOWED_LIBRARY_TYPES = {
     "text/plain", "text/csv",
 }
 
+ALLOWED_ALBUM_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif", "image/heic", "image/heif"}
+USER_ALBUM_LIMIT_BYTES = 1024 * 1024 * 1024
+ALBUM_FILE_LIMIT_BYTES = 100 * 1024 * 1024
+
 def request_role(request):
     return access_role(request) or UserProfile.Role.USER
 
@@ -280,7 +285,7 @@ def media_asset_json(item):
     preview_href = f"/api/media/{item.id}/preview" if has_file else item.external_url
     download_href = f"/api/media/{item.id}/download" if has_file else item.external_url
     return {
-        "id": str(item.id), "title": item.title, "assetType": item.asset_type,
+        "id": str(item.id), "albumId": str(item.album_id) if item.album_id else "", "title": item.title, "assetType": item.asset_type,
         "category": item.category, "description": item.description,
         "originalName": item.original_name, "mimeType": item.mime_type,
         "size": item.size_bytes, "labels": item.labels, "dateCreated": item.date_created.isoformat() if item.date_created else "",
@@ -292,6 +297,115 @@ def media_asset_json(item):
         "uploadedAt": item.uploaded_at.isoformat(), "updatedAt": item.updated_at.isoformat(),
         "missing": not has_file and not bool(item.external_url),
     }
+
+def album_asset_queryset(album, role):
+    records = album.assets.all()
+    if role == UserProfile.Role.MEDIA:
+        records = records.filter(available_to_media=True).exclude(document_status=MediaAsset.Status.ARCHIVED)
+    return records
+
+def media_album_json(album, role):
+    records = album_asset_queryset(album, role)
+    total_size = records.aggregate(total=Sum("size_bytes"))["total"] or 0
+    cover = records.filter(asset_type=MediaAsset.AssetType.MEDIA).first()
+    return {
+        "id": str(album.id), "name": album.name, "description": album.description,
+        "createdBy": album.created_by_name, "createdByRole": album.created_by_role,
+        "available": album.available_to_media, "itemCount": records.count(), "totalSize": total_size,
+        "coverUrl": media_asset_json(cover)["previewHref"] if cover else "",
+        "uploadLimitBytes": None if role == UserProfile.Role.ADMIN else USER_ALBUM_LIMIT_BYTES,
+        "createdAt": album.created_at.isoformat(), "updatedAt": album.updated_at.isoformat(),
+    }
+
+def album_write_role(request):
+    role = access_role(request)
+    if not role:
+        return None, JsonResponse({"error": "A valid access session is required."}, status=401)
+    if role not in {UserProfile.Role.ADMIN, UserProfile.Role.USER}:
+        return role, JsonResponse({"error": "This role cannot upload albums."}, status=403)
+    return role, None
+
+@csrf_exempt
+@require_http_methods(["GET", "POST"])
+def media_albums(request):
+    role = access_role(request)
+    if not role:
+        return JsonResponse({"error": "A valid access session is required."}, status=401)
+    if request.method == "GET":
+        records = MediaAlbum.objects.all()
+        if role == UserProfile.Role.MEDIA:
+            records = records.filter(available_to_media=True)
+        return JsonResponse({"albums": [media_album_json(album, role) for album in records]})
+    role, denied = album_write_role(request)
+    if denied: return denied
+    try:
+        payload = json.loads(request.body)
+        name = str(payload.get("name", "")).strip()
+        if not name:
+            return JsonResponse({"error": "Album name is required."}, status=400)
+        if len(name) > 255:
+            return JsonResponse({"error": "Album name must be 255 characters or fewer."}, status=400)
+        album = MediaAlbum.objects.create(
+            name=name,
+            description=str(payload.get("description", "")).strip(),
+            created_by_name=str(payload.get("createdBy", "")).strip(),
+            created_by_role=role,
+            available_to_media=role == UserProfile.Role.ADMIN and bool(payload.get("available", False)),
+        )
+        return JsonResponse({"album": media_album_json(album, role)}, status=201)
+    except (json.JSONDecodeError, TypeError, ValueError):
+        return JsonResponse({"error": "Enter valid album details."}, status=400)
+
+@require_GET
+def media_album_assets(request, album_id):
+    role = access_role(request)
+    if not role:
+        return JsonResponse({"error": "A valid access session is required."}, status=401)
+    album = get_object_or_404(MediaAlbum, pk=album_id)
+    if role == UserProfile.Role.MEDIA and not album.available_to_media:
+        return JsonResponse({"error": "Album not found."}, status=404)
+    return JsonResponse({"album": media_album_json(album, role), "items": [media_asset_json(item) for item in album_asset_queryset(album, role)]})
+
+@csrf_exempt
+@require_POST
+def upload_media_album_asset(request, album_id):
+    role, denied = album_write_role(request)
+    if denied: return denied
+    uploaded = request.FILES.get("file")
+    if not uploaded:
+        return JsonResponse({"error": "Choose a picture to upload."}, status=400)
+    if uploaded.content_type not in ALLOWED_ALBUM_IMAGE_TYPES:
+        return JsonResponse({"error": "Albums accept JPG, PNG, WebP, GIF or HEIC pictures."}, status=400)
+    if uploaded.size > ALBUM_FILE_LIMIT_BYTES:
+        return JsonResponse({"error": "Each picture must be smaller than 100 MB."}, status=413)
+    try:
+        with transaction.atomic():
+            album = MediaAlbum.objects.select_for_update().get(pk=album_id)
+            if role == UserProfile.Role.USER and album.created_by_role != UserProfile.Role.USER:
+                return JsonResponse({"error": "Normal users can only add pictures to team-created albums."}, status=403)
+            used = album.assets.aggregate(total=Sum("size_bytes"))["total"] or 0
+            if role == UserProfile.Role.USER and used + uploaded.size > USER_ALBUM_LIMIT_BYTES:
+                return JsonResponse({"error": "This album has reached the 1 GB user upload limit."}, status=413)
+            title = str(request.POST.get("title", "")).strip() or uploaded.name.rsplit(".", 1)[0]
+            item = MediaAsset(
+                album=album, title=title, asset_type=MediaAsset.AssetType.MEDIA,
+                category="Photo Albums", description=str(request.POST.get("description", album.description or "Album picture.")).strip(),
+                original_name=uploaded.name, mime_type=uploaded.content_type, size_bytes=uploaded.size,
+                uploaded_by_name=str(request.POST.get("uploadedBy", "")).strip(),
+                document_status=MediaAsset.Status.APPROVED if role == UserProfile.Role.ADMIN else MediaAsset.Status.DRAFT,
+                available_to_media=album.available_to_media and role == UserProfile.Role.ADMIN,
+            )
+            item.file = uploaded
+            item.save()
+            album.updated_at = timezone.now()
+            album.save(update_fields=["updated_at"])
+        logger.info("media_album_asset_created album_id=%s asset_id=%s size=%s", album_id, item.id, uploaded.size)
+        return JsonResponse({"album": media_album_json(album, role), "item": media_asset_json(item)}, status=201)
+    except MediaAlbum.DoesNotExist:
+        return JsonResponse({"error": "Album not found."}, status=404)
+    except Exception:
+        logger.exception("media_album_asset_create_failed album_id=%s", album_id)
+        return JsonResponse({"error": "The picture could not be saved."}, status=500)
 
 def split_labels(value):
     return [label.strip() for label in str(value or "").split(",") if label.strip()][:20]
@@ -329,7 +443,7 @@ def validate_media_fields(item):
 @require_http_methods(["GET", "POST"])
 def media_assets(request):
     if request.method == "GET":
-        records = MediaAsset.objects.all()
+        records = MediaAsset.objects.filter(album__isnull=True)
         if request_role(request) == "media":
             records = records.filter(available_to_media=True).exclude(document_status=MediaAsset.Status.ARCHIVED)
         return JsonResponse({"items": [media_asset_json(item) for item in records]})
