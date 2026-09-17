@@ -1,7 +1,9 @@
 import tempfile
+from os import environ
 from pathlib import Path
 from unittest.mock import patch
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.core.management import call_command
 from django.test import Client, TestCase, override_settings
 from .models import ActivityAttachment, ActivitySubcommittee, ActivityTask, MediaAlbum, MediaAsset, TributeAttachment, TributeParty, UserProfile
 
@@ -324,6 +326,21 @@ class HubFlowTests(TestCase):
         self.assertNotIn("Private album", names)
         denied = self.client.post("/api/media/albums", data='{"name":"No"}', content_type="application/json", **auth)
         self.assertEqual(denied.status_code, 403)
+
+    def test_picture_archive_seed_uses_persistent_file_storage_and_is_idempotent(self):
+        with tempfile.TemporaryDirectory() as source_dir:
+            source = Path(source_dir) / "family" / "portrait.jpg"
+            source.parent.mkdir()
+            source.write_bytes(b"optimized-picture")
+            with patch.dict(environ, {"PICTURE_ARCHIVE_SOURCE": source_dir}):
+                call_command("seed_picture_album")
+                call_command("seed_picture_album")
+        album = MediaAlbum.objects.get(name="Oko and Atteh Picture Archive")
+        records = album.assets.filter(notes="archive-source:family/portrait.jpg")
+        self.assertEqual(records.count(), 1)
+        item = records.get()
+        self.assertTrue(item.file.storage.exists(item.file.name))
+        self.assertEqual(item.external_url, "")
 
     def test_media_metadata_edit_and_file_replacement_persist(self):
         original = SimpleUploadedFile("draft.pdf", b"draft", content_type="application/pdf")
