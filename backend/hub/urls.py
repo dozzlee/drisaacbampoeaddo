@@ -14,6 +14,7 @@ urlpatterns = [
     path("media/albums", views.media_albums),
     path("media/albums/<uuid:album_id>", views.media_album_assets),
     path("media/albums/<uuid:album_id>/assets", views.upload_media_album_asset),
+    path("media/albums/<uuid:album_id>/download", views.download_media_album),
     path("media/<uuid:asset_id>/edit", views.edit_media_asset),
     path("media/<uuid:asset_id>/preview", views.preview_media_asset),
     path("media/<uuid:asset_id>/download", views.download_media_asset),

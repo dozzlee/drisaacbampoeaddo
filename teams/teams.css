@@ -24,14 +24,11 @@
 .media-symbol{background:var(--aqua)}
 .heading-actions{display:grid;width:100%;gap:.65rem}
 .heading-actions .primary-button,.heading-actions .secondary-button{width:100%}
-.share-button{padding-inline:1rem}
 .calendar-event[data-calendar-task]{cursor:pointer;transition:filter 160ms ease,transform 160ms var(--ease)}
 .calendar-event[data-calendar-task]:hover{filter:brightness(.96);transform:translateY(-1px)}
 .calendar-event-row{display:grid;grid-template-columns:minmax(0,1fr) 2.75rem;gap:.25rem;margin-top:.28rem}
 .calendar-event-row .calendar-event{margin-top:0}
 .task-actions{display:flex;flex-wrap:wrap;gap:.4rem}
-.whatsapp-button{min-height:2.75rem;border:1px solid #a7dfc2;border-radius:.65rem;background:#e7f8ee;color:#17613f;cursor:pointer;padding:.55rem .75rem;font-size:.72rem;font-weight:800}
-.whatsapp-button:hover{background:var(--mint)}
 .modal :disabled{cursor:default;background:#f6f8f7;color:var(--ink);opacity:1}
 @media(min-width:40rem){.heading-actions{display:flex;width:auto}.heading-actions .primary-button,.heading-actions .secondary-button{width:auto}}
 @media(min-width:80rem){.role-cards{grid-template-columns:repeat(3,minmax(0,1fr))}}
@@ -192,7 +189,7 @@
   .activity-view-tabs button,.segmented button{min-height:2.65rem;border:0;border-radius:999px;background:transparent;padding:.55rem .9rem;font-size:.75rem}.activity-view-tabs button.active,.segmented button.active{border:0;background:white;color:var(--navy);box-shadow:0 5px 14px rgba(18,34,51,.11)}
   .calendar-card,.table-card{padding:1.1rem}.calendar-scroll{border:0;border-radius:1.2rem}.calendar-controls button,.view-options button{border:0;border-radius:999px;background:var(--canvas)}
   .activity-filters input,.activity-filters select,.filters input,.filters select,.library-toolbar input,.library-toolbar label select{border:0;border-radius:999px;background:var(--canvas);padding-inline:1rem}
-  .primary-button,.secondary-button,.media-actions a,.media-actions button,.edit-button,.delete-button,.whatsapp-button,.attachment-download,.attachment-edit,.attachment-remove,.file-add{border-radius:999px}
+  .primary-button,.secondary-button,.media-actions a,.media-actions button,.edit-button,.delete-button,.attachment-download,.attachment-edit,.attachment-remove,.file-add{border-radius:999px}
   .media-card{overflow:hidden}.media-overview article{border:0;border-radius:1.3rem}.library-toolbar.card{padding:1rem}.media-preview{border:0}.media-actions .media-access-button{flex-basis:auto}
   .grouped-activities{gap:.7rem}.activity-group{border:0;border-radius:1.35rem;background:white;box-shadow:var(--shadow)}.activity-group header{min-width:0;background:var(--mint);padding:1rem}.activity-group header strong{min-width:0;overflow-wrap:anywhere}.activity-group>button{min-width:0;padding:1rem}.activity-group>button span,.activity-group>button small{min-width:0;max-width:100%;overflow-wrap:anywhere;white-space:normal}
   .activity-filter-toggle{display:flex;width:100%;min-height:3rem;align-items:center;justify-content:center;gap:.5rem;margin-bottom:.75rem;border-radius:999px}.filter-count{display:grid;min-width:1.4rem;height:1.4rem;place-items:center;border-radius:999px;background:var(--navy);color:white;font-size:.68rem}.activity-filter-panel:not(.mobile-open){display:none}.activity-filter-panel{padding:1rem}.activity-filter-panel .activity-filters{gap:.65rem}.group-task-title{font-size:1rem}.group-task-meta{align-items:stretch;flex-direction:column;gap:.65rem}.group-task-details{align-items:flex-start;flex-direction:column;gap:.12rem}.group-task-details small{color:var(--muted);font-size:.78rem;line-height:1.35}.group-task-details strong{font-size:.86rem}.group-progress-row{width:100%}.group-progress{width:auto;flex:1}
@@ -255,6 +252,20 @@ body:has(dialog[open]) .app-shell .workspace{overflow:hidden}
 .album-viewer-stage img{width:100%;height:100%;min-height:0;object-fit:contain;position:absolute;inset:0}
 .album-image-message{padding:1rem;text-align:center;color:white}
 .album-photo.preview-failed::after,.album-cover.preview-failed::after{color:var(--ink);background:var(--canvas)}
+.album-download-toolbar{display:flex;flex-wrap:wrap;gap:.65rem;margin:1rem 0;align-items:center}
+.album-download-toolbar button{min-width:0;max-width:100%;white-space:normal}
+.album-download-toolbar button:disabled{opacity:.55;cursor:default;transform:none}
+.album-download-toolbar p{flex-basis:100%;margin:0;color:var(--muted);font-size:.875rem}
+.album-photo-card{min-width:0;display:flex;flex-direction:column;gap:.35rem}
+.album-photo-actions{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:.25rem}
+.album-select,.album-photo-download{display:inline-flex;min-height:2.75rem;align-items:center;gap:.4rem;padding:.35rem;font-size:.875rem;color:var(--navy);cursor:pointer}
+.album-select input{width:1.125rem;height:1.125rem;margin:0;accent-color:var(--mint-strong)}
+.album-photo-card:has(input:checked) .album-photo{outline:3px solid var(--mint-strong);outline-offset:2px}
+.album-viewer header strong{flex:1}
+#downloadAlbumImage{display:inline-flex;min-height:2.75rem;align-items:center;padding:.5rem;color:white;font-size:.875rem;flex:none}
+.album-viewer header{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:start}
+.album-viewer header strong{grid-column:1/-1;max-height:4.2em;overflow:auto}
+#downloadAlbumImage{justify-self:start}
 @media(max-width:63.99rem){
   .app-shell .workspace{padding-bottom:.25rem}
   .app-shell .workspace .view{padding-bottom:1rem}

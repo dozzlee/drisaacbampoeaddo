@@ -1,4 +1,6 @@
 import tempfile
+import io
+import zipfile
 from os import environ
 from pathlib import Path
 from unittest.mock import patch
@@ -303,6 +305,74 @@ class HubFlowTests(TestCase):
         detail = self.client.get(f"/api/media/albums/{album['id']}", **auth).json()
         self.assertEqual(detail["album"]["itemCount"], 1)
         self.assertEqual(detail["items"][0]["albumId"], album["id"])
+
+    def make_download_album(self):
+        album = MediaAlbum.objects.create(name="Download pictures", available_to_media=True)
+        items = []
+        for index in range(3):
+            items.append(MediaAsset.objects.create(
+                album=album, title=f"Picture {index}", asset_type="media", category="Photo Albums",
+                description="Test picture", original_name="../same.jpg", mime_type="image/jpeg",
+                file=SimpleUploadedFile("same.jpg", f"picture-{index}".encode(), content_type="image/jpeg"),
+                available_to_media=index == 0, document_status="approved",
+            ))
+        return album, items
+
+    def test_download_entire_album_and_selected_pictures(self):
+        album, items = self.make_download_album()
+        url = f"/api/media/albums/{album.id}/download"
+        for payload, expected in [({}, {b"picture-0", b"picture-1", b"picture-2"}),
+                                  ({"ids": [str(items[0].id), str(items[2].id)]}, {b"picture-0", b"picture-2"})]:
+            with self.subTest(payload=payload):
+                response = self.client.post(url, payload, content_type="application/json", **self.auth("TEAMS2026"))
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(response["Content-Type"], "application/zip")
+                self.assertIn("attachment;", response["Content-Disposition"])
+                with zipfile.ZipFile(io.BytesIO(b"".join(response.streaming_content))) as archive:
+                    names = archive.namelist()
+                    self.assertEqual(len(names), len(set(names)))
+                    self.assertTrue(all("/" not in name and ".." not in name for name in names))
+                    self.assertEqual({archive.read(name) for name in names}, expected)
+        self.assertEqual(album.assets.count(), 3)
+        single = self.client.get(f"/api/media/{items[0].id}/download")
+        self.assertEqual(b"".join(single.streaming_content), b"picture-0")
+
+    def test_album_download_enforces_session_and_media_visibility(self):
+        album, items = self.make_download_album()
+        url = f"/api/media/albums/{album.id}/download"
+        self.assertEqual(self.client.post(url, {}, content_type="application/json").status_code, 401)
+        auth = self.auth("MEDIA2026")
+        response = self.client.post(url, {}, content_type="application/json", **auth)
+        with zipfile.ZipFile(io.BytesIO(b"".join(response.streaming_content))) as archive:
+            self.assertEqual(len(archive.namelist()), 1)
+        denied = self.client.post(url, {"ids": [str(items[1].id)]}, content_type="application/json", **auth)
+        self.assertEqual(denied.status_code, 404)
+        items[0].document_status = "archived"
+        items[0].save()
+        self.assertEqual(self.client.post(url, {}, content_type="application/json", **auth).status_code, 400)
+        album.available_to_media = False
+        album.save()
+        self.assertEqual(self.client.post(url, {}, content_type="application/json", **auth).status_code, 404)
+
+    def test_album_download_rejects_invalid_or_cross_album_selection(self):
+        album, items = self.make_download_album()
+        other, others = self.make_download_album()
+        url = f"/api/media/albums/{album.id}/download"
+        auth = self.auth("TEAMS2026")
+        for payload in [{"ids": []}, {"ids": None}, {"ids": ["invalid"]}, {"ids": [12]}, [], {"ids": "all"}]:
+            with self.subTest(payload=payload):
+                self.assertEqual(self.client.post(url, payload, content_type="application/json", **auth).status_code, 400)
+        response = self.client.post(url, {"ids": [str(others[0].id)]}, content_type="application/json", **auth)
+        self.assertEqual(response.status_code, 404)
+        response = self.client.post(url, "{broken", content_type="application/json", **auth)
+        self.assertEqual(response.status_code, 400)
+
+    def test_album_download_reports_missing_files_without_partial_archive(self):
+        album, items = self.make_download_album()
+        items[0].file.delete(save=True)
+        response = self.client.post(f"/api/media/albums/{album.id}/download", {}, content_type="application/json", **self.auth("TEAMS2026"))
+        self.assertEqual(response.status_code, 409)
+        self.assertIn("unavailable", response.json()["error"])
 
     def test_normal_user_album_limit_is_enforced(self):
         album = MediaAlbum.objects.create(name="At limit", created_by_role="user")

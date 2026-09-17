@@ -1,12 +1,17 @@
 import json
 import logging
 import re
+import shutil
+import tempfile
+import uuid
+import zipfile
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core import signing
 from django.db import IntegrityError, connection, transaction
 from django.db.models import Sum
 from django.utils import timezone
+from django.utils.text import slugify
 from django.http import FileResponse, JsonResponse, HttpResponseRedirect
 from django.shortcuts import get_object_or_404
 from django.views.decorators.csrf import csrf_exempt
@@ -365,6 +370,60 @@ def media_album_assets(request, album_id):
     if role == UserProfile.Role.MEDIA and not album.available_to_media:
         return JsonResponse({"error": "Album not found."}, status=404)
     return JsonResponse({"album": media_album_json(album, role), "items": [media_asset_json(item) for item in album_asset_queryset(album, role)]})
+
+@csrf_exempt
+@require_POST
+def download_media_album(request, album_id):
+    """Build a read-only archive from stored, role-visible album files."""
+    role = access_role(request)
+    if not role:
+        return JsonResponse({"error": "A valid access session is required."}, status=401)
+    album = get_object_or_404(MediaAlbum, pk=album_id)
+    if role == UserProfile.Role.MEDIA and not album.available_to_media:
+        return JsonResponse({"error": "Album not found."}, status=404)
+    try:
+        payload = json.loads(request.body or b"{}")
+        if not isinstance(payload, dict):
+            raise ValueError
+        ids = payload.get("ids")
+        if "ids" in payload:
+            if not isinstance(ids, list) or not ids or len(ids) > 10000:
+                raise ValueError
+            ids = {uuid.UUID(value) for value in ids if isinstance(value, str)}
+            if len(ids) != len(set(payload["ids"])):
+                raise ValueError
+    except (json.JSONDecodeError, ValueError, TypeError, AttributeError):
+        return JsonResponse({"error": "Choose one or more valid pictures."}, status=400)
+    records = album_asset_queryset(album, role)
+    if ids is not None:
+        records = records.filter(id__in=ids)
+        if records.count() != len(ids):
+            return JsonResponse({"error": "One or more selected pictures are unavailable."}, status=404)
+    if not records.exists():
+        return JsonResponse({"error": "This album has no downloadable pictures."}, status=400)
+    # Spill large archives to temporary disk; do not hold an album in server RAM.
+    archive = tempfile.SpooledTemporaryFile(max_size=8 * 1024 * 1024, mode="w+b")
+    try:
+        with zipfile.ZipFile(archive, "w", compression=zipfile.ZIP_STORED, allowZip64=True) as bundle:
+            for index, item in enumerate(records.iterator(), start=1):
+                if not item.file:
+                    raise FileNotFoundError
+                name = (item.original_name or item.file.name).replace("\\", "/").rsplit("/", 1)[-1]
+                name = re.sub(r"[\x00-\x1f\x7f]", "", name).strip(". ") or "picture"
+                # Prefixes prevent duplicate names and archive path traversal.
+                with item.file.open("rb") as source, bundle.open(f"{index:04d}-{name}", "w", force_zip64=True) as target:
+                    shutil.copyfileobj(source, target, length=1024 * 1024)
+        archive.seek(0)
+        filename = (slugify(album.name)[:100] or "photo-album") + ("-selected" if ids is not None else "") + ".zip"
+        return FileResponse(archive, as_attachment=True, filename=filename, content_type="application/zip")
+    except (FileNotFoundError, OSError):
+        archive.close()
+        logger.warning("media_album_download_unavailable album_id=%s", album_id)
+        return JsonResponse({"error": "A picture is unavailable. Try downloading the remaining pictures individually."}, status=409)
+    except Exception:
+        archive.close()
+        logger.exception("media_album_download_failed album_id=%s", album_id)
+        return JsonResponse({"error": "The album download could not be prepared. Please try again."}, status=500)
 
 @csrf_exempt
 @require_POST
