@@ -311,3 +311,6 @@ body:has(dialog[open]) .app-shell .workspace{overflow:hidden}
   .album-photo img{aspect-ratio:1;height:auto;object-fit:contain}
   .album-photo span{position:static;white-space:normal;overflow-wrap:anywhere;padding:.4rem;background:var(--navy);font-size:.75rem}
 }
+.device-upload{padding:1rem;margin-bottom:1rem;border:1px dashed var(--teal);border-radius:12px;background:#f2f8f7;min-width:0}
+.device-upload p{overflow-wrap:anywhere;font-size:.875rem;line-height:1.5}
+.device-upload button{min-height:44px;max-width:100%;white-space:normal}

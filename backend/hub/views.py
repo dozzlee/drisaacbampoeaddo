@@ -256,14 +256,10 @@ def download_tribute_file(request, attachment_id):
         logger.warning("tribute_file_missing id=%s", item.id)
         return JsonResponse({"error": "The stored file is unavailable."}, status=404)
 
-ALLOWED_LIBRARY_TYPES = {
-    "image/jpeg", "image/png", "image/webp", "image/gif", "image/svg+xml",
+SAFE_INLINE_LIBRARY_TYPES = {
+    "image/jpeg", "image/png", "image/webp", "image/gif", "image/avif",
     "video/mp4", "video/quicktime", "video/webm", "audio/mpeg", "audio/wav", "audio/mp4",
-    "application/pdf", "application/msword",
-    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    "application/vnd.ms-excel", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    "application/vnd.ms-powerpoint", "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-    "text/plain", "text/csv",
+    "application/pdf", "text/plain",
 }
 
 ALLOWED_ALBUM_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif", "image/heic", "image/heif"}
@@ -279,8 +275,9 @@ def admin_required(request):
     return None
 
 def validate_library_upload(uploaded):
-    if uploaded.content_type not in ALLOWED_LIBRARY_TYPES:
-        return JsonResponse({"error": "This media or document type is not supported."}, status=400)
+    # Other file formats remain downloadable attachments, never inline documents.
+    if not uploaded.size:
+        return JsonResponse({"error": "The selected file is empty."}, status=400)
     if uploaded.size > 100 * 1024 * 1024:
         return JsonResponse({"error": "Files must be smaller than 100 MB."}, status=413)
     return None
@@ -440,8 +437,6 @@ def upload_media_album_asset(request, album_id):
     try:
         with transaction.atomic():
             album = MediaAlbum.objects.select_for_update().get(pk=album_id)
-            if role == UserProfile.Role.USER and album.created_by_role != UserProfile.Role.USER:
-                return JsonResponse({"error": "Normal users can only add pictures to team-created albums."}, status=403)
             used = album.assets.aggregate(total=Sum("size_bytes"))["total"] or 0
             if role == UserProfile.Role.USER and used + uploaded.size > USER_ALBUM_LIMIT_BYTES:
                 return JsonResponse({"error": "This album has reached the 1 GB user upload limit."}, status=413)
@@ -506,14 +501,18 @@ def media_assets(request):
         if request_role(request) == "media":
             records = records.filter(available_to_media=True).exclude(document_status=MediaAsset.Status.ARCHIVED)
         return JsonResponse({"items": [media_asset_json(item) for item in records]})
-    denied = admin_required(request)
-    if denied: return denied
+    role = access_role(request)
+    if role not in {UserProfile.Role.ADMIN, UserProfile.Role.USER}:
+        return JsonResponse({"error": "Team access is required to upload files."}, status=403)
     uploaded = request.FILES.get("file")
     if not uploaded: return JsonResponse({"error": "Choose a file to upload."}, status=400)
     upload_error = validate_library_upload(uploaded)
     if upload_error: return upload_error
-    item = MediaAsset(original_name=uploaded.name, mime_type=uploaded.content_type, size_bytes=uploaded.size)
+    item = MediaAsset(original_name=uploaded.name, mime_type=uploaded.content_type or "application/octet-stream", size_bytes=uploaded.size)
     apply_media_fields(item, request.POST)
+    if role != UserProfile.Role.ADMIN:
+        item.available_to_media = False
+        item.document_status = MediaAsset.Status.DRAFT
     field_error = validate_media_fields(item)
     if field_error: return JsonResponse({"error": field_error}, status=400)
     try:
@@ -579,7 +578,11 @@ def delete_media_asset(request, asset_id):
 def media_file_response(item, attachment):
     if item.file:
         try:
-            return FileResponse(item.file.open("rb"), as_attachment=attachment, filename=item.original_name, content_type=item.mime_type)
+            safe_inline = item.mime_type in SAFE_INLINE_LIBRARY_TYPES
+            response = FileResponse(item.file.open("rb"), as_attachment=attachment or not safe_inline,
+                                    filename=item.original_name, content_type=item.mime_type if safe_inline else "application/octet-stream")
+            response["X-Content-Type-Options"] = "nosniff"
+            return response
         except (FileNotFoundError, OSError):
             logger.warning("media_asset_file_missing id=%s", item.id)
             return JsonResponse({"error": "The stored file is unavailable."}, status=404)

@@ -11,6 +11,41 @@ from .models import ActivityAttachment, ActivitySubcommittee, ActivityTask, Medi
 
 @override_settings(MEDIA_ROOT=tempfile.mkdtemp())
 class HubFlowTests(TestCase):
+    def test_team_can_upload_any_file_but_cannot_publish_or_edit(self):
+        auth = self.auth("TEAMS2026")
+        for name, mime in [("photo.jpg", "image/jpeg"), ("notes.pdf", "application/pdf"), ("archive.zip", "application/zip"), ("page.html", "text/html")]:
+            response = self.client.post("/api/media", {"title": name, "description": name,
+                "category": "Invoices", "assetType": "document", "available": "true", "status": "approved",
+                "file": SimpleUploadedFile(name, b"test contents", content_type=mime)}, **auth)
+            self.assertEqual(response.status_code, 201)
+            item = response.json()["item"]
+            record = MediaAsset.objects.get(pk=item["id"])
+            self.assertFalse(record.available_to_media)
+            self.assertEqual(record.document_status, "draft")
+            download = Client().get(item["downloadHref"])
+            self.assertEqual(b"".join(download.streaming_content), b"test contents")
+            if mime in {"text/html", "application/zip"}:
+                preview = self.client.get(item["previewHref"])
+                self.assertIn("attachment", preview["Content-Disposition"])
+                self.assertEqual(preview["X-Content-Type-Options"], "nosniff")
+                self.assertEqual(b"".join(preview.streaming_content), b"test contents")
+            self.assertEqual(self.client.post(f'/api/media/{item["id"]}/edit', {}, **auth).status_code, 403)
+            self.assertEqual(self.client.delete(f'/api/media/{item["id"]}', **auth).status_code, 403)
+
+    def test_team_can_add_photos_to_existing_admin_album(self):
+        album = MediaAlbum.objects.create(name="Existing archive", created_by_role="admin")
+        response = self.client.post(f"/api/media/albums/{album.id}/assets", {
+            "file": SimpleUploadedFile("photo.jpg", b"photo contents", content_type="image/jpeg")
+        }, **self.auth("TEAMS2026"))
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(album.assets.count(), 1)
+
+    def test_empty_files_and_media_partner_uploads_are_rejected(self):
+        for code, contents, expected in [("TEAMS2026", b"", 400), ("MEDIA2026", b"data", 403)]:
+            response = self.client.post("/api/media", {"title": "Test", "description": "Test", "category": "Invoices",
+                "assetType": "document", "file": SimpleUploadedFile("test.zip", contents, content_type="application/zip")}, **self.auth(code))
+            self.assertEqual(response.status_code, expected)
+
     def auth(self, code):
         response = self.client.post("/api/access/", data=f'{{"code":"{code}"}}', content_type="application/json")
         self.assertEqual(response.status_code, 200)
