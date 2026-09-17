@@ -228,6 +228,17 @@
 .calendar{min-width:0;grid-template-columns:repeat(7,minmax(0,1fr))}
 .calendar-day{min-width:0}.calendar-event{min-height:2.75rem}
 .activity-filters{grid-template-columns:repeat(auto-fit,minmax(min(100%,12rem),1fr))}
+/* Filter rows adapt to their container, including enlarged desktop text. */
+body{min-width:0}
+.library-toolbar{grid-template-columns:repeat(auto-fit,minmax(min(100%,11rem),1fr))}
+.library-toolbar>*{min-width:0;max-width:100%}
+.library-toolbar .segmented,.view-options{flex-wrap:wrap}
+.table-heading{flex-wrap:wrap}
+.table-heading>*{min-width:0;max-width:100%}
+.table-heading .filters{flex:1 1 24rem;grid-template-columns:repeat(auto-fit,minmax(min(100%,11rem),1fr))}
+.filters>*,.filters input,.filters select{min-width:0;max-width:100%}
+/* Keep enlarged sticky table headers inside their own scrollport. */
+@media(min-width:64rem){.data-table-wrap{contain:layout paint}}
 .modal{max-height:calc(100dvh - 1.5rem);overflow:auto;overscroll-behavior:contain}
 .modal-head>div{min-width:0}.modal-head>button{flex:none}
 .modal input,.modal select,.modal textarea{min-width:0;max-width:100%;font-size:1rem}
