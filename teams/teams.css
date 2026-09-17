@@ -154,14 +154,15 @@
 
 /* Mobile card and button system inspired by the travel-planner reference. */
 @media(max-width:63.99rem){
-  html,body{max-width:100%;overflow-x:clip}
+  html,body{max-width:100%}
   body{background:var(--canvas)}
-  .app-shell{padding-bottom:6.8rem}
+  .app-shell{--mobile-nav-height:5.25rem;--mobile-nav-gap:.75rem;position:fixed;inset:0;min-height:0;display:flex;flex-direction:column;padding:0}
+  .app-shell .workspace{flex:1;min-height:0;overflow:auto;overscroll-behavior-y:contain;scroll-padding-block:1rem}
   .workspace,.view,.table-card,.grouped-activities,.activity-group{width:100%;max-width:100%;min-width:0}
   .menu-button{display:none}
-  .sidebar{inset:auto auto .75rem 50%;display:block;width:calc(100dvw - 1.5rem);max-width:calc(100dvw - 1.5rem);overflow:hidden;border:1px solid rgba(255,255,255,.12);border-radius:1.55rem;background:rgba(18,34,51,.96);box-shadow:0 18px 48px rgba(18,34,51,.28);transform:translateX(-50%)!important;backdrop-filter:blur(1rem)}
+  .sidebar{position:relative;inset:auto;order:2;flex:none;display:block;width:calc(100% - 1.5rem);max-width:100%;min-height:var(--mobile-nav-height);margin:var(--mobile-nav-gap) .75rem calc(var(--mobile-nav-gap) + env(safe-area-inset-bottom,0px));overflow:hidden;border:1px solid rgba(255,255,255,.12);border-radius:1rem;background:var(--navy);box-shadow:none;transform:none!important}
   .sidebar .brand,.sidebar-card,.sidebar-profile{display:none}
-  .primary-nav{grid-template-columns:repeat(4,minmax(0,1fr));gap:.25rem;padding:.4rem}
+  .primary-nav{grid-template-columns:none;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:.25rem;padding:.4rem}
   .primary-nav button{min-width:0;min-height:4.55rem;grid-template-columns:1fr;place-items:center;gap:.12rem;border-radius:1.15rem;padding:.42rem .2rem;text-align:center}
   .primary-nav button.active{background:white;color:var(--navy);box-shadow:0 8px 22px rgba(5,18,30,.24)}
   .primary-nav .nav-icon{width:2rem;height:1.8rem;border-radius:999px;background:rgba(255,255,255,.1);font-size:.84rem}
@@ -200,7 +201,7 @@
   .toast{right:.75rem;bottom:6.8rem;border-radius:1rem}
 }
 
-@media(max-width:39.99rem){
+@media(max-width:63.99rem){
   .committee-selector{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;margin-inline:-1rem;padding:0 1rem .4rem}.committee-card{min-width:78vw;scroll-snap-align:center}
   .calendar-card{padding-inline:.85rem}.card-head{align-items:center}.calendar-controls button{min-width:2.45rem;padding:.45rem}.calendar-controls #calendarToday{display:none}
   .table-card{background:transparent;padding:0;box-shadow:none}.table-heading{padding:.25rem 0}.data-table-wrap{overflow:visible}.activity-table{display:block;min-width:0}.activity-table thead{display:none}.activity-table tbody{display:grid;gap:.8rem}.activity-table tr{position:relative;display:grid;grid-template-columns:1fr auto;gap:.8rem;border:0;border-radius:1.45rem;background:white;padding:1.15rem;box-shadow:0 12px 28px rgba(25,57,61,.08)}
@@ -215,4 +216,76 @@
   .view{padding:.75rem}.page-heading{padding:1.1rem}.page-heading h2{font-size:2rem}.heading-actions{gap:.45rem}.heading-actions button{padding-inline:.7rem;font-size:.78rem}
   .primary-nav button{min-height:4.25rem}.primary-nav button strong:after{font-size:.58rem}.primary-nav .nav-icon{width:1.75rem;height:1.65rem}
   .activity-view-tabs button{padding-inline:.7rem;font-size:.7rem}.activity-group header,.activity-group>button{padding:.85rem}.activity-group>button>span:first-child{font-size:.88rem}.activity-group>button small{font-size:.66rem}.group-task-meta{align-items:flex-start;flex-direction:column;gap:.35rem}.group-progress{width:5.5rem}
+}
+
+/* Keep every mobile page inside its reading area, above the navigation. */
+.workspace,.view,.card,.page-heading>div,.heading-actions,.activity-filter-panel label{min-width:0}
+.heading-actions{flex-wrap:wrap}
+.grouped-activities,.activity-group>button{grid-template-columns:minmax(0,1fr)}
+.group-task-details{flex-wrap:wrap}
+.group-task-title,.media-copy h3,.album-card-copy,.album-detail-heading h3{overflow-wrap:anywhere}
+.album-cover span{font:700 .75rem var(--sans)}
+.calendar{min-width:0;grid-template-columns:repeat(7,minmax(0,1fr))}
+.calendar-day{min-width:0}.calendar-event{min-height:2.75rem}
+.activity-filters{grid-template-columns:repeat(auto-fit,minmax(min(100%,12rem),1fr))}
+.modal{max-height:calc(100dvh - 1.5rem);overflow:auto;overscroll-behavior:contain}
+.modal-head>div{min-width:0}.modal-head>button{flex:none}
+.modal input,.modal select,.modal textarea{min-width:0;max-width:100%;font-size:1rem}
+body:has(dialog[open]){overflow:hidden}
+body:has(dialog[open]) .app-shell .workspace{overflow:hidden}
+.album-viewer{width:min(64rem,calc(100% - 1.5rem));height:calc(100dvh - 1.5rem);max-height:48rem;padding:1rem;background:var(--navy);color:white;border-radius:1rem}
+.album-viewer[open]{display:flex;flex-direction:column;gap:.75rem}
+.album-viewer header,.album-viewer footer{display:flex;align-items:center;justify-content:space-between;gap:.75rem;flex:none}
+.album-viewer footer{gap:.4rem;font-size:.875rem}.album-viewer footer button{font-size:.875rem}.album-viewer footer span{white-space:nowrap}
+.album-viewer header strong{min-width:0;overflow-wrap:anywhere;font-size:1rem;line-height:1.4}
+.album-viewer button{min-width:2.75rem;min-height:2.75rem;border:1px solid #8a9aa8;border-radius:.5rem;background:transparent;color:white;cursor:pointer;padding:.5rem .75rem}
+.album-viewer button:disabled{opacity:.4}
+.album-viewer-stage{display:grid;place-items:center;min-height:0;flex:1;position:relative}
+.album-viewer-stage img{width:100%;height:100%;min-height:0;object-fit:contain;position:absolute;inset:0}
+.album-image-message{padding:1rem;text-align:center;color:white}
+.album-photo.preview-failed::after,.album-cover.preview-failed::after{color:var(--ink);background:var(--canvas)}
+@media(max-width:63.99rem){
+  .app-shell .workspace{padding-bottom:.25rem}
+  .app-shell .workspace .view{padding-bottom:1rem}
+  .workspace:has(#tasksView.active) .topbar{display:none}
+  .activities-heading{padding:1rem;gap:.75rem;margin-bottom:.75rem;border-radius:1rem;box-shadow:none}
+  .activities-heading h2{font-size:1.75rem;margin:0}
+  .activities-heading .eyebrow,#tasksView .table-heading{display:none}
+  .top-actions{grid-column:2;justify-self:end}
+  .activity-group>button{gap:.5rem}
+  .group-task-title,.activity-group>button>span:first-child{font-size:1rem}
+  .group-task-details small,.activity-group>button small{font-size:.875rem;color:#536575}
+  .group-task-details strong{font-size:.875rem}
+  .group-progress-row>strong{font-size:.75rem;color:#536575}
+  .primary-nav button strong:after{font-size:.75rem}
+  .primary-nav button strong{white-space:normal;overflow:visible;overflow-wrap:anywhere;line-height:1.3}
+  .activity-view-tabs{width:100%;display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
+  .activity-view-tabs button{min-width:0;min-height:2.75rem;padding:.5rem .25rem;overflow-wrap:anywhere}
+  .album-section>.card-head,.album-detail-heading{align-items:stretch;flex-direction:column}
+  .album-section,.album-detail,.album-photo-grid{min-width:0}
+  .album-upload-button{white-space:normal}
+  .media-card-heading{flex-wrap:wrap}
+  .media-card-heading>div{flex:1 1 10rem}
+  .media-grid[data-layout="compact"]{grid-template-columns:repeat(auto-fit,minmax(min(100%,14rem),1fr))}
+  .media-grid[data-layout="list"] .media-card{grid-template-columns:minmax(0,1fr)}
+  .media-grid[data-layout="list"] .media-preview{height:10rem;min-height:0;border:0}
+  .activity-table tr{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .activity-table td{min-width:0;overflow-wrap:anywhere}
+  .activity-table td:first-child{max-width:none;padding-right:0;line-height:1.45}
+  .activity-table td:nth-child(9){position:static;grid-column:1/-1}
+  .activity-table td:nth-child(7){font-weight:700}
+  .subcommittee-pill,.status{white-space:normal;overflow-wrap:anywhere}
+  .stat-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));overflow:visible}
+  .stat-row article,.stat-row article:nth-child(n){min-width:0;overflow-wrap:anywhere}
+  .toast{bottom:calc(7rem + env(safe-area-inset-bottom,0px));max-width:calc(100% - 1.5rem)}
+}
+@media(max-width:39.99rem){
+  .calendar{grid-template-columns:minmax(0,1fr)}
+  .calendar-weekday,.calendar-day.outside,.calendar-day:not(:has(.calendar-event)){display:none}
+  .calendar-day{min-height:0;padding:.75rem}
+  .calendar-event{white-space:normal;overflow-wrap:anywhere;font-size:.875rem;line-height:1.4;padding:.65rem}
+  .calendar-card .card-head{flex-wrap:wrap}
+  .album-photo{aspect-ratio:auto;display:flex;flex-direction:column}
+  .album-photo img{aspect-ratio:1;height:auto;object-fit:contain}
+  .album-photo span{position:static;white-space:normal;overflow-wrap:anywhere;padding:.4rem;background:var(--navy);font-size:.75rem}
 }
