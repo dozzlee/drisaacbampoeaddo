@@ -369,6 +369,30 @@ def media_album_assets(request, album_id):
 
 @csrf_exempt
 @require_POST
+def edit_media_album(request, album_id):
+    role, denied = album_write_role(request)
+    if denied: return denied
+    album = get_object_or_404(MediaAlbum, pk=album_id)
+    if role != UserProfile.Role.ADMIN and album.created_by_role != UserProfile.Role.USER:
+        return JsonResponse({"error": "Only an administrator can edit this album."}, status=403)
+    try:
+        payload = json.loads(request.body)
+        name = str(payload.get("name", "")).strip()
+        if not name:
+            return JsonResponse({"error": "Album name is required."}, status=400)
+        if len(name) > 255:
+            return JsonResponse({"error": "Album name must be 255 characters or fewer."}, status=400)
+        album.name = name
+        album.description = str(payload.get("description", "")).strip()
+        if role == UserProfile.Role.ADMIN and "available" in payload:
+            album.available_to_media = bool(payload["available"])
+        album.save(update_fields=["name", "description", "available_to_media", "updated_at"])
+        return JsonResponse({"album": media_album_json(album, role)})
+    except (json.JSONDecodeError, TypeError, ValueError):
+        return JsonResponse({"error": "Enter valid album details."}, status=400)
+
+@csrf_exempt
+@require_POST
 def download_media_album(request, album_id):
     """Build a read-only archive from stored, role-visible album files."""
     role = access_role(request)

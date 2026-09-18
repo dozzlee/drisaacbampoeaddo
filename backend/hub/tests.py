@@ -56,6 +56,22 @@ class HubFlowTests(TestCase):
         self.assertEqual(album.assets.filter(asset_type="document").count(), 2)
         self.assertEqual(album.assets.filter(asset_type="media").count(), 1)
 
+    def test_album_name_and_description_can_be_edited_with_role_limits(self):
+        team_album = MediaAlbum.objects.create(name="Original", description="Before", created_by_role="user")
+        response = self.client.post(f"/api/media/albums/{team_album.id}/edit",
+            data='{"name":"Updated album","description":"A clearer description"}', content_type="application/json", **self.auth("TEAMS2026"))
+        self.assertEqual(response.status_code, 200)
+        team_album.refresh_from_db()
+        self.assertEqual((team_album.name, team_album.description), ("Updated album", "A clearer description"))
+
+        admin_album = MediaAlbum.objects.create(name="Admin album", created_by_role="admin")
+        denied = self.client.post(f"/api/media/albums/{admin_album.id}/edit",
+            data='{"name":"Blocked","description":"Blocked"}', content_type="application/json", **self.auth("TEAMS2026"))
+        self.assertEqual(denied.status_code, 403)
+        allowed = self.client.post(f"/api/media/albums/{admin_album.id}/edit",
+            data='{"name":"Admin updated","description":"Admin description"}', content_type="application/json", **self.auth("ADMIN2026"))
+        self.assertEqual(allowed.status_code, 200)
+
     def test_empty_files_and_media_partner_uploads_are_rejected(self):
         for code, contents, expected in [("TEAMS2026", b"", 400), ("MEDIA2026", b"data", 403)]:
             response = self.client.post("/api/media", {"title": "Test", "description": "Test", "category": "Invoices",
