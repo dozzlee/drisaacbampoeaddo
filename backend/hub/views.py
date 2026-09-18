@@ -262,7 +262,6 @@ SAFE_INLINE_LIBRARY_TYPES = {
     "application/pdf", "text/plain",
 }
 
-ALLOWED_ALBUM_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif", "image/heic", "image/heif"}
 USER_ALBUM_LIMIT_BYTES = 1024 * 1024 * 1024
 ALBUM_FILE_LIMIT_BYTES = 100 * 1024 * 1024
 
@@ -309,7 +308,7 @@ def album_asset_queryset(album, role):
 def media_album_json(album, role):
     records = album_asset_queryset(album, role)
     total_size = records.aggregate(total=Sum("size_bytes"))["total"] or 0
-    cover = records.filter(asset_type=MediaAsset.AssetType.MEDIA).first()
+    cover = records.filter(mime_type__startswith="image/").first()
     return {
         "id": str(album.id), "name": album.name, "description": album.description,
         "createdBy": album.created_by_name, "createdByRole": album.created_by_role,
@@ -429,11 +428,11 @@ def upload_media_album_asset(request, album_id):
     if denied: return denied
     uploaded = request.FILES.get("file")
     if not uploaded:
-        return JsonResponse({"error": "Choose a picture to upload."}, status=400)
-    if uploaded.content_type not in ALLOWED_ALBUM_IMAGE_TYPES:
-        return JsonResponse({"error": "Albums accept JPG, PNG, WebP, GIF or HEIC pictures."}, status=400)
+        return JsonResponse({"error": "Choose a file to upload."}, status=400)
+    if not uploaded.size:
+        return JsonResponse({"error": "The selected file is empty."}, status=400)
     if uploaded.size > ALBUM_FILE_LIMIT_BYTES:
-        return JsonResponse({"error": "Each picture must be smaller than 100 MB."}, status=413)
+        return JsonResponse({"error": "Each file must be smaller than 100 MB."}, status=413)
     try:
         with transaction.atomic():
             album = MediaAlbum.objects.select_for_update().get(pk=album_id)
@@ -441,10 +440,12 @@ def upload_media_album_asset(request, album_id):
             if role == UserProfile.Role.USER and used + uploaded.size > USER_ALBUM_LIMIT_BYTES:
                 return JsonResponse({"error": "This album has reached the 1 GB user upload limit."}, status=413)
             title = str(request.POST.get("title", "")).strip() or uploaded.name.rsplit(".", 1)[0]
+            mime_type = uploaded.content_type or "application/octet-stream"
+            asset_type = MediaAsset.AssetType.MEDIA if mime_type.startswith(("image/", "video/", "audio/")) else MediaAsset.AssetType.DOCUMENT
             item = MediaAsset(
-                album=album, title=title, asset_type=MediaAsset.AssetType.MEDIA,
-                category="Photo Albums", description=str(request.POST.get("description", album.description or "Album picture.")).strip(),
-                original_name=uploaded.name, mime_type=uploaded.content_type, size_bytes=uploaded.size,
+                album=album, title=title, asset_type=asset_type,
+                category="Albums", description=str(request.POST.get("description", album.description or "Album file.")).strip(),
+                original_name=uploaded.name, mime_type=mime_type, size_bytes=uploaded.size,
                 uploaded_by_name=str(request.POST.get("uploadedBy", "")).strip(),
                 document_status=MediaAsset.Status.APPROVED if role == UserProfile.Role.ADMIN else MediaAsset.Status.DRAFT,
                 available_to_media=album.available_to_media and role == UserProfile.Role.ADMIN,
@@ -459,7 +460,7 @@ def upload_media_album_asset(request, album_id):
         return JsonResponse({"error": "Album not found."}, status=404)
     except Exception:
         logger.exception("media_album_asset_create_failed album_id=%s", album_id)
-        return JsonResponse({"error": "The picture could not be saved."}, status=500)
+        return JsonResponse({"error": "The file could not be saved."}, status=500)
 
 def split_labels(value):
     return [label.strip() for label in str(value or "").split(",") if label.strip()][:20]

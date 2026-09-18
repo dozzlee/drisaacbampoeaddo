@@ -40,6 +40,22 @@ class HubFlowTests(TestCase):
         self.assertEqual(response.status_code, 201)
         self.assertEqual(album.assets.count(), 1)
 
+    def test_album_accepts_mixed_file_types_and_preserves_downloads(self):
+        album = MediaAlbum.objects.create(name="Mixed archive", created_by_role="user")
+        auth = self.auth("TEAMS2026")
+        samples = [("photo.jpg", "image/jpeg", b"photo"), ("minutes.pdf", "application/pdf", b"pdf"), ("records.zip", "application/zip", b"zip")]
+        for name, mime_type, contents in samples:
+            response = self.client.post(f"/api/media/albums/{album.id}/assets", {
+                "file": SimpleUploadedFile(name, contents, content_type=mime_type)
+            }, **auth)
+            self.assertEqual(response.status_code, 201)
+            item = response.json()["item"]
+            download = Client().get(item["downloadHref"])
+            self.assertEqual(b"".join(download.streaming_content), contents)
+        self.assertEqual(album.assets.count(), 3)
+        self.assertEqual(album.assets.filter(asset_type="document").count(), 2)
+        self.assertEqual(album.assets.filter(asset_type="media").count(), 1)
+
     def test_empty_files_and_media_partner_uploads_are_rejected(self):
         for code, contents, expected in [("TEAMS2026", b"", 400), ("MEDIA2026", b"data", 403)]:
             response = self.client.post("/api/media", {"title": "Test", "description": "Test", "category": "Invoices",

@@ -261,6 +261,7 @@ body:has(dialog[open]) .app-shell .workspace{overflow:hidden}
 .album-select,.album-photo-download{display:inline-flex;min-height:2.75rem;align-items:center;gap:.4rem;padding:.35rem;font-size:.875rem;color:var(--navy);cursor:pointer}
 .album-select input{width:1.125rem;height:1.125rem;margin:0;accent-color:var(--mint-strong)}
 .album-photo-card:has(input:checked) .album-photo{outline:3px solid var(--mint-strong);outline-offset:2px}
+.album-file{display:flex;flex-direction:column;align-items:center;justify-content:center;text-decoration:none}.album-file .preview-file-icon{margin:auto}.album-file span{position:static;width:100%;margin-top:auto;background:var(--navy);padding:.55rem;color:white;white-space:normal;overflow-wrap:anywhere}
 .album-viewer header strong{flex:1}
 #downloadAlbumImage{display:inline-flex;min-height:2.75rem;align-items:center;padding:.5rem;color:white;font-size:.875rem;flex:none}
 .album-viewer header{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:start}
