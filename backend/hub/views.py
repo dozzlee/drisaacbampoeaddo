@@ -387,6 +387,8 @@ def edit_media_album(request, album_id):
         if role == UserProfile.Role.ADMIN and "available" in payload:
             album.available_to_media = bool(payload["available"])
         album.save(update_fields=["name", "description", "available_to_media", "updated_at"])
+        if role == UserProfile.Role.ADMIN and "available" in payload:
+            album.assets.update(available_to_media=album.available_to_media)
         return JsonResponse({"album": media_album_json(album, role)})
     except (json.JSONDecodeError, TypeError, ValueError):
         return JsonResponse({"error": "Enter valid album details."}, status=400)

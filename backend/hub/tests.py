@@ -69,8 +69,27 @@ class HubFlowTests(TestCase):
             data='{"name":"Blocked","description":"Blocked"}', content_type="application/json", **self.auth("TEAMS2026"))
         self.assertEqual(denied.status_code, 403)
         allowed = self.client.post(f"/api/media/albums/{admin_album.id}/edit",
-            data='{"name":"Admin updated","description":"Admin description"}', content_type="application/json", **self.auth("ADMIN2026"))
+            data='{"name":"Admin updated","description":"Admin description","available":true}', content_type="application/json", **self.auth("ADMIN2026"))
         self.assertEqual(allowed.status_code, 200)
+
+    def test_admin_album_visibility_toggle_cascades_to_existing_files(self):
+        album = MediaAlbum.objects.create(name="Media album", created_by_role="admin", available_to_media=False)
+        asset = MediaAsset.objects.create(album=album, title="Brief", asset_type="document", category="Albums",
+            description="Brief", original_name="brief.pdf", mime_type="application/pdf", external_url="/brief.pdf",
+            available_to_media=False, document_status="approved")
+        response = self.client.post(f"/api/media/albums/{album.id}/edit",
+            data='{"name":"Media album","description":"Shared with media","available":true}', content_type="application/json", **self.auth("ADMIN2026"))
+        self.assertEqual(response.status_code, 200)
+        asset.refresh_from_db()
+        self.assertTrue(asset.available_to_media)
+        listing = self.client.get(f"/api/media/albums/{album.id}", **self.auth("MEDIA2026"))
+        self.assertEqual(listing.status_code, 200)
+        self.assertEqual([item["title"] for item in listing.json()["items"]], ["Brief"])
+        self.client.post(f"/api/media/albums/{album.id}/edit",
+            data='{"name":"Media album","description":"Private","available":false}', content_type="application/json", **self.auth("ADMIN2026"))
+        asset.refresh_from_db()
+        self.assertFalse(asset.available_to_media)
+        self.assertEqual(self.client.get(f"/api/media/albums/{album.id}", **self.auth("MEDIA2026")).status_code, 404)
 
     def test_empty_files_and_media_partner_uploads_are_rejected(self):
         for code, contents, expected in [("TEAMS2026", b"", 400), ("MEDIA2026", b"data", 403)]:
