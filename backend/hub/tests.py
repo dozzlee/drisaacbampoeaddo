@@ -484,13 +484,19 @@ class HubFlowTests(TestCase):
         self.assertEqual(album.assets.count(), 1)
 
     def test_media_role_only_sees_shared_albums_and_cannot_create_them(self):
-        MediaAlbum.objects.create(name="Shared album", available_to_media=True)
-        MediaAlbum.objects.create(name="Private album", available_to_media=False)
+        shared = MediaAlbum.objects.create(name="Shared album", available_to_media=True)
+        private = MediaAlbum.objects.create(name="Private album", available_to_media=False)
         auth = self.auth("MEDIA2026")
         listing = self.client.get("/api/media/albums", **auth).json()["albums"]
         names = {album["name"] for album in listing}
         self.assertIn("Shared album", names)
         self.assertNotIn("Private album", names)
+        self.assertEqual(self.client.get(f"/api/media/albums/{shared.id}", **auth).status_code, 200)
+        self.assertEqual(self.client.get(f"/api/media/albums/{private.id}", **auth).status_code, 404)
+
+        admin_listing = self.client.get("/api/media/albums", **self.auth("ADMIN2026")).json()["albums"]
+        admin_names = {album["name"] for album in admin_listing}
+        self.assertTrue({"Shared album", "Private album"}.issubset(admin_names))
         denied = self.client.post("/api/media/albums", data='{"name":"No"}', content_type="application/json", **auth)
         self.assertEqual(denied.status_code, 403)
 

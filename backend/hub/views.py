@@ -305,6 +305,13 @@ def album_asset_queryset(album, role):
         records = records.filter(available_to_media=True).exclude(document_status=MediaAsset.Status.ARCHIVED)
     return records
 
+def visible_albums_for_role(role):
+    records = MediaAlbum.objects.all()
+    return records.filter(available_to_media=True) if role == UserProfile.Role.MEDIA else records
+
+def role_can_view_album(role, album):
+    return role != UserProfile.Role.MEDIA or album.available_to_media
+
 def media_album_json(album, role):
     records = album_asset_queryset(album, role)
     total_size = records.aggregate(total=Sum("size_bytes"))["total"] or 0
@@ -333,9 +340,7 @@ def media_albums(request):
     if not role:
         return JsonResponse({"error": "A valid access session is required."}, status=401)
     if request.method == "GET":
-        records = MediaAlbum.objects.all()
-        if role == UserProfile.Role.MEDIA:
-            records = records.filter(available_to_media=True)
+        records = visible_albums_for_role(role)
         return JsonResponse({"albums": [media_album_json(album, role) for album in records]})
     role, denied = album_write_role(request)
     if denied: return denied
@@ -351,9 +356,8 @@ def media_albums(request):
             description=str(payload.get("description", "")).strip(),
             created_by_name=str(payload.get("createdBy", "")).strip(),
             created_by_role=role,
-            # Albums submitted by team members are part of the media library,
-            # not private drafts. Admins can still explicitly create a private
-            # album and can change an album's visibility later.
+            # Team-submitted albums are shared by default. Administrators can
+            # deliberately leave a new album private.
             available_to_media=role == UserProfile.Role.USER or bool(payload.get("available", False)),
         )
         return JsonResponse({"album": media_album_json(album, role)}, status=201)
@@ -366,7 +370,7 @@ def media_album_assets(request, album_id):
     if not role:
         return JsonResponse({"error": "A valid access session is required."}, status=401)
     album = get_object_or_404(MediaAlbum, pk=album_id)
-    if role == UserProfile.Role.MEDIA and not album.available_to_media:
+    if not role_can_view_album(role, album):
         return JsonResponse({"error": "Album not found."}, status=404)
     return JsonResponse({"album": media_album_json(album, role), "items": [media_asset_json(item) for item in album_asset_queryset(album, role)]})
 
@@ -404,7 +408,7 @@ def download_media_album(request, album_id):
     if not role:
         return JsonResponse({"error": "A valid access session is required."}, status=401)
     album = get_object_or_404(MediaAlbum, pk=album_id)
-    if role == UserProfile.Role.MEDIA and not album.available_to_media:
+    if not role_can_view_album(role, album):
         return JsonResponse({"error": "Album not found."}, status=404)
     try:
         payload = json.loads(request.body or b"{}")
