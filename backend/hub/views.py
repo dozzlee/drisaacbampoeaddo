@@ -351,7 +351,10 @@ def media_albums(request):
             description=str(payload.get("description", "")).strip(),
             created_by_name=str(payload.get("createdBy", "")).strip(),
             created_by_role=role,
-            available_to_media=role == UserProfile.Role.ADMIN and bool(payload.get("available", False)),
+            # Albums submitted by team members are part of the media library,
+            # not private drafts. Admins can still explicitly create a private
+            # album and can change an album's visibility later.
+            available_to_media=role == UserProfile.Role.USER or bool(payload.get("available", False)),
         )
         return JsonResponse({"album": media_album_json(album, role)}, status=201)
     except (json.JSONDecodeError, TypeError, ValueError):
@@ -473,8 +476,11 @@ def upload_media_album_asset(request, album_id):
                 category="Albums", description=str(request.POST.get("description", album.description or "Album file.")).strip(),
                 original_name=uploaded.name, mime_type=mime_type, size_bytes=uploaded.size,
                 uploaded_by_name=str(request.POST.get("uploadedBy", "")).strip(),
-                document_status=MediaAsset.Status.APPROVED if role == UserProfile.Role.ADMIN else MediaAsset.Status.DRAFT,
-                available_to_media=album.available_to_media and role == UserProfile.Role.ADMIN,
+                # Album visibility is controlled at album level. Keeping a
+                # second, role-dependent gate here made shared team albums
+                # appear empty to media users.
+                document_status=MediaAsset.Status.APPROVED,
+                available_to_media=album.available_to_media,
             )
             item.file = uploaded
             item.save()

@@ -391,6 +391,17 @@ class HubFlowTests(TestCase):
         detail = self.client.get(f"/api/media/albums/{album['id']}", **auth).json()
         self.assertEqual(detail["album"]["itemCount"], 1)
         self.assertEqual(detail["items"][0]["albumId"], album["id"])
+        self.assertTrue(detail["album"]["available"])
+        self.assertTrue(detail["items"][0]["available"])
+        self.assertEqual(detail["items"][0]["status"], "approved")
+
+        media_auth = self.auth("MEDIA2026")
+        media_albums = self.client.get("/api/media/albums", **media_auth).json()["albums"]
+        self.assertIn(album["id"], {item["id"] for item in media_albums})
+        media_detail = self.client.get(f"/api/media/albums/{album['id']}", **media_auth)
+        self.assertEqual(media_detail.status_code, 200)
+        self.assertEqual(media_detail.json()["album"]["itemCount"], 1)
+        self.assertEqual(len(media_detail.json()["items"]), 1)
 
     def make_download_album(self):
         album = MediaAlbum.objects.create(name="Download pictures", available_to_media=True)
