@@ -314,7 +314,7 @@ class HubFlowTests(TestCase):
         party = TributeParty.objects.create(name="Rename Party")
         uploaded = SimpleUploadedFile("original.pdf", b"original-content", content_type="application/pdf")
         record = self.client.post(f"/api/tributes/{party.id}/files", {"file": uploaded}).json()["file"]
-        response = self.client.post(f"/api/tributes/files/{record['id']}/edit", {"name": "renamed.pdf"})
+        response = self.client.post(f"/api/tributes/files/{record['id']}/edit", {"name": "renamed.pdf"}, **self.auth("TEAMS2026"))
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["file"]["name"], "renamed.pdf")
         listing = Client().get("/api/tributes/files").json()
@@ -328,6 +328,7 @@ class HubFlowTests(TestCase):
         response = self.client.post(
             f"/api/tributes/files/{record['id']}/edit",
             {"name": "final-tribute.pdf", "file": replacement},
+            **self.auth("TEAMS2026"),
         )
         self.assertEqual(response.status_code, 200)
         updated = response.json()["file"]
@@ -340,8 +341,28 @@ class HubFlowTests(TestCase):
         response = self.client.post(
             "/api/tributes/files/00000000-0000-0000-0000-000000000000/edit",
             {"name": "missing.pdf"},
+            **self.auth("TEAMS2026"),
         )
         self.assertEqual(response.status_code, 404)
+
+    def test_team_can_edit_and_delete_tribute_but_media_and_anonymous_cannot(self):
+        party = TributeParty.objects.create(name="Managed Tribute")
+        uploaded = SimpleUploadedFile("original.pdf", b"tribute-content", content_type="application/pdf")
+        record = self.client.post(f"/api/tributes/{party.id}/files", {"file": uploaded, "type": "tribute"}).json()["file"]
+        edit_url = f"/api/tributes/files/{record['id']}/edit"
+        delete_url = f"/api/tributes/files/{record['id']}"
+
+        self.assertEqual(self.client.post(edit_url, {"name": "anonymous.pdf"}).status_code, 401)
+        self.assertEqual(self.client.post(edit_url, {"name": "media.pdf"}, **self.auth("MEDIA2026")).status_code, 403)
+        updated = self.client.post(edit_url, {"name": "team-edited.pdf"}, **self.auth("TEAMS2026"))
+        self.assertEqual(updated.status_code, 200)
+        self.assertEqual(updated.json()["file"]["name"], "team-edited.pdf")
+
+        self.assertEqual(self.client.delete(delete_url).status_code, 401)
+        self.assertEqual(self.client.delete(delete_url, **self.auth("MEDIA2026")).status_code, 403)
+        deleted = self.client.delete(delete_url, **self.auth("TEAMS2026"))
+        self.assertEqual(deleted.status_code, 200)
+        self.assertFalse(TributeAttachment.objects.filter(pk=record["id"]).exists())
 
     def test_remove_attachment_deletes_metadata_and_stored_file(self):
         party = TributeParty.objects.create(name="Removal Party")
@@ -351,13 +372,16 @@ class HubFlowTests(TestCase):
         stored_path = Path(attachment.file.path)
         self.assertTrue(stored_path.exists())
         with self.captureOnCommitCallbacks(execute=True):
-            response = self.client.delete(f"/api/tributes/files/{record['id']}")
+            response = self.client.delete(f"/api/tributes/files/{record['id']}", **self.auth("TEAMS2026"))
         self.assertEqual(response.status_code, 200)
         self.assertFalse(TributeAttachment.objects.filter(pk=record["id"]).exists())
         self.assertFalse(stored_path.exists())
 
     def test_remove_missing_attachment_returns_404(self):
-        response = self.client.delete("/api/tributes/files/00000000-0000-0000-0000-000000000000")
+        response = self.client.delete(
+            "/api/tributes/files/00000000-0000-0000-0000-000000000000",
+            **self.auth("TEAMS2026"),
+        )
         self.assertEqual(response.status_code, 404)
 
     def test_media_upload_survives_fresh_client_and_downloads(self):

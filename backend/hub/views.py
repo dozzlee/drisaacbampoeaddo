@@ -36,6 +36,14 @@ def access_role(request):
     except (signing.BadSignature, signing.SignatureExpired, TypeError, ValueError):
         return None
 
+def tribute_write_required(request):
+    role = access_role(request)
+    if not role:
+        return JsonResponse({"error": "A valid access session is required."}, status=401)
+    if role not in {UserProfile.Role.ADMIN, UserProfile.Role.USER}:
+        return JsonResponse({"error": "Team or administrator access is required."}, status=403)
+    return None
+
 @csrf_exempt
 @require_http_methods(["GET", "POST"])
 def access_session(request):
@@ -188,6 +196,8 @@ def upload_tribute_file(request, party_id):
 @csrf_exempt
 @require_POST
 def edit_tribute_file(request, attachment_id):
+    denied = tribute_write_required(request)
+    if denied: return denied
     item = get_object_or_404(TributeAttachment, pk=attachment_id)
     replacement = request.FILES.get("file")
     new_name = str(request.POST.get("name", "")).strip()
@@ -229,6 +239,8 @@ def edit_tribute_file(request, attachment_id):
 @csrf_exempt
 @require_http_methods(["DELETE"])
 def delete_tribute_file(request, attachment_id):
+    denied = tribute_write_required(request)
+    if denied: return denied
     item = get_object_or_404(TributeAttachment, pk=attachment_id)
     storage = item.file.storage
     stored_path = item.file.name
