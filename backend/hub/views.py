@@ -299,7 +299,7 @@ def media_asset_json(item):
     download_href = f"/api/media/{item.id}/download" if has_file else item.external_url
     return {
         "id": str(item.id), "albumId": str(item.album_id) if item.album_id else "", "title": item.title, "assetType": item.asset_type,
-        "category": item.category, "description": item.description,
+        "category": item.category, "description": item.description, "photoMetadata": item.photo_metadata,
         "originalName": item.original_name, "mimeType": item.mime_type,
         "size": item.size_bytes, "labels": item.labels, "dateCreated": item.date_created.isoformat() if item.date_created else "",
         "eventActivity": item.event_activity, "responsibleCommittee": item.responsible_committee,
@@ -512,6 +512,36 @@ def upload_media_album_asset(request, album_id):
 
 def split_labels(value):
     return [label.strip() for label in str(value or "").split(",") if label.strip()][:20]
+
+@csrf_exempt
+@require_POST
+def annotate_photo(request, asset_id):
+    role = access_role(request)
+    if role not in UserProfile.Role.values:
+        return JsonResponse({"error": "A valid access session is required."}, status=401)
+    item = get_object_or_404(MediaAsset, pk=asset_id)
+    if role == UserProfile.Role.MEDIA and (not item.available_to_media or item.document_status == MediaAsset.Status.ARCHIVED or (item.album and not item.album.available_to_media)):
+        return JsonResponse({"error": "This picture is not available."}, status=403)
+    if not item.mime_type.startswith("image/"):
+        return JsonResponse({"error": "Choose a picture to label."}, status=400)
+    try:
+        data = json.loads(request.body)
+        label = data.get("label", "")
+        labels = data.get("labels", [])
+        subject = data.get("subject", "")
+        category = data.get("category", "Uncategorised")
+        grade = data.get("grade", "Original")
+        if not isinstance(label, str) or len(label) > 255 or not isinstance(labels, list) or len(labels) > 20 or any(not isinstance(tag, str) or len(tag) > 80 for tag in labels):
+            raise ValueError()
+        if subject not in {"", "Oko", "Atteh", "Oko and Atteh"} or category not in {"Uncategorised", "Work", "Family", "Political", "Accra Academy", "Childhood", "Friends", "Community", "Celebrations", "Travel", "Portraits"} or grade not in {"Original", "Warm", "Cool", "Black and white", "Vintage", "Vivid"}:
+            raise ValueError()
+    except (ValueError, TypeError, AttributeError):
+        return JsonResponse({"error": "Enter valid picture labels, categories and colour grade."}, status=400)
+    item.photo_metadata = {"label": label.strip(), "subject": subject, "category": category, "grade": grade}
+    item.labels = [tag.strip() for tag in labels if tag.strip()]
+    item.save(update_fields=["photo_metadata", "labels", "updated_at"])
+    return JsonResponse({"item": media_asset_json(item)})
+
 
 def apply_media_fields(item, data):
     item.title = str(data.get("title", item.title)).strip()

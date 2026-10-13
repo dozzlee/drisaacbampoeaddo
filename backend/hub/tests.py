@@ -11,6 +11,27 @@ from .models import ActivityAttachment, ActivitySubcommittee, ActivityTask, Medi
 
 @override_settings(MEDIA_ROOT=tempfile.mkdtemp())
 class HubFlowTests(TestCase):
+    def test_media_can_save_picture_annotations_and_original_is_preserved(self):
+        photo = MediaAsset.objects.create(title="Original", asset_type="media", category="Albums", description="Archive", original_name="photo.jpg", mime_type="image/jpeg", external_url="/photo.jpg", available_to_media=True, document_status="approved")
+        payload = {"label": "Oko with family", "subject": "Oko", "category": "Family", "grade": "Warm", "labels": ["Accra", "1990"]}
+        response = self.client.post(f"/api/media/{photo.id}/annotations", payload, content_type="application/json", **self.auth("MEDIA2026"))
+        self.assertEqual(response.status_code, 200)
+        photo.refresh_from_db()
+        self.assertEqual(photo.photo_metadata["subject"], "Oko")
+        self.assertEqual(photo.labels, ["Accra", "1990"])
+        self.assertEqual(photo.external_url, "/photo.jpg")
+        self.assertEqual(photo.title, "Original")
+        self.assertEqual(response.json()["item"]["photoMetadata"]["grade"], "Warm")
+        payload["grade"] = "invalid"
+        self.assertEqual(self.client.post(f"/api/media/{photo.id}/annotations", payload, content_type="application/json", **self.auth("MEDIA2026")).status_code, 400)
+        photo.refresh_from_db()
+        self.assertEqual(photo.photo_metadata["grade"], "Warm")
+        photo.available_to_media = False
+        photo.save()
+        payload["grade"] = "Original"
+        self.assertEqual(self.client.post(f"/api/media/{photo.id}/annotations", payload, content_type="application/json", **self.auth("MEDIA2026")).status_code, 403)
+        self.assertEqual(self.client.post(f"/api/media/{photo.id}/annotations", payload, content_type="application/json").status_code, 401)
+
     def test_team_can_upload_any_file_but_cannot_publish_or_edit(self):
         auth = self.auth("TEAMS2026")
         for name, mime in [("photo.jpg", "image/jpeg"), ("notes.pdf", "application/pdf"), ("archive.zip", "application/zip"), ("page.html", "text/html")]:

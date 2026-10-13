@@ -100,6 +100,7 @@ class MediaAsset(models.Model):
     mime_type = models.CharField(max_length=160)
     size_bytes = models.PositiveBigIntegerField(default=0)
     labels = models.JSONField(default=list, blank=True)
+    photo_metadata = models.JSONField(default=dict, blank=True)
     date_created = models.DateField(null=True, blank=True)
     event_activity = models.CharField(max_length=160, blank=True)
     responsible_committee = models.CharField(max_length=160, blank=True)

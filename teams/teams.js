@@ -96,6 +96,7 @@ async function syncAlbums(){if(!activeAccessToken)return;try{const payload=await
 async function openAlbum(albumId){
   const payload=await apiJson(`/api/media/albums/${albumId}`),album=payload.album;
   openAlbumId=albumId;openAlbumItems=payload.items||[];selectedAlbumPhotos.clear();
+  if($("#photoFilters")){$("#photoSubjectFilter").value="";$("#photoCategoryFilter").value="";$("#photoFilterCount").textContent="";$("#photoFilters").hidden=false}
   const index=mediaAlbums.findIndex(item=>item.id===albumId);if(index>=0)mediaAlbums[index]=album;
   $("#albumGrid").hidden=true;$("#albumDetail").hidden=false;$("#fileLibrary").hidden=true;
   $("#albumDetailTitle").textContent=album.name;
@@ -105,7 +106,38 @@ async function openAlbum(albumId){
   $("#albumPhotoGrid").innerHTML=openAlbumItems.map(item=>{const isImage=(item.mimeType||"").startsWith("image/"),extension=(item.originalName||"FILE").split(".").pop().toUpperCase();return `<article class="album-photo-card"><a class="album-photo${isImage?"":" album-file"}" href="${escapeHtml(isImage?item.previewHref:item.downloadHref)}" data-image="${isImage}" data-download-href="${escapeHtml(item.downloadHref)}" data-filename="${escapeHtml(item.originalName)}" ${isImage?'target="_blank" rel="noopener"':`download="${escapeHtml(item.originalName)}"`}>${isImage?`<img src="${escapeHtml(item.previewHref)}" alt="${escapeHtml(item.title)}" loading="lazy">`:`<div class="preview-file-icon">${escapeHtml(extension)}</div>`}<span>${escapeHtml(item.title)}</span></a><div class="album-photo-actions"><label class="album-select"><input type="checkbox" data-select-photo="${item.id}" aria-label="Select ${escapeHtml(item.title)}">Select</label><a class="album-photo-download" href="${escapeHtml(item.downloadHref)}" download="${escapeHtml(item.originalName)}" aria-label="Download ${escapeHtml(item.title)}">Download</a></div></article>`}).join("")||`<div class="media-empty"><strong>This album is empty</strong><span>Add files to get it started.</span></div>`;
   updateAlbumSelection();
 }
+const photoCategories={Uncategorised:"#64748b",Work:"#2563eb",Family:"#be185d",Political:"#b45309","Accra Academy":"#15803d",Childhood:"#7e22ce",Friends:"#0e7490",Community:"#4338ca",Celebrations:"#a21caf",Travel:"#0f766e",Portraits:"#475569"};
+const photoSubjects={Oko:"#1d4ed8",Atteh:"#b45309","Oko and Atteh":"#7e22ce"};
+const photoGrades={Original:"none",Warm:"sepia(.18) saturate(1.12)",Cool:"saturate(.9) hue-rotate(12deg)","Black and white":"grayscale(1)",Vintage:"sepia(.45) contrast(.9)",Vivid:"saturate(1.35) contrast(1.08)"};
+function photoOptions(values,current){return values.map(value=>`<option value="${escapeHtml(value)}" ${value===current?"selected":""}>${escapeHtml(value||"Choose person")}</option>`).join("")}
+function initialisePhotoTools(){
+  if(!$("#photoFilters"))$("#albumPhotoGrid").insertAdjacentHTML("beforebegin",`<div id="photoFilters" class="photo-filters"><label>Person<select id="photoSubjectFilter">${photoOptions(["","Oko","Atteh","Oko and Atteh"],"")}</select></label><label>Category<select id="photoCategoryFilter"><option value="">All categories</option>${photoOptions(Object.keys(photoCategories),"")}</select></label><span id="photoFilterCount" role="status"></span></div>`);
+  $$("#albumPhotoGrid .album-photo-card").forEach((card,index)=>{
+    const item=openAlbumItems[index];if(!item?.mimeType?.startsWith("image/")||card.querySelector(".photo-editor"))return;
+    const meta=item.photoMetadata||{},category=meta.category||"Uncategorised",grade=meta.grade||"Original";
+    card.dataset.photoId=item.id;card.dataset.subject=meta.subject||"";card.dataset.category=category;
+    card.style.borderTop=`5px solid ${photoSubjects[meta.subject]||"#64748b"}`;
+    card.querySelector("img").style.filter=photoGrades[grade]||"none";
+    if(meta.label)card.querySelector(".album-photo span").textContent=meta.label;
+    card.insertAdjacentHTML("beforeend",`<form class="photo-editor"><span class="photo-category-badge" style="background:${photoCategories[category]||photoCategories.Uncategorised}">${escapeHtml(meta.subject||"Person unassigned")} · ${escapeHtml(category)}</span><label>Picture label<input name="label" maxlength="255" value="${escapeHtml(meta.label||"")}" placeholder="Who, where or when?"></label><div class="photo-editor-row"><label>Main group<select name="subject">${photoOptions(["","Oko","Atteh","Oko and Atteh"],meta.subject||"")}</select></label><label>Category<select name="category">${photoOptions(Object.keys(photoCategories),category)}</select></label></div><label>Labels<input name="labels" value="${escapeHtml((item.labels||[]).join(", "))}" placeholder="Separate labels with commas"></label><label>Colour grade<select name="grade">${photoOptions(Object.keys(photoGrades),grade)}</select></label><div class="photo-editor-row"><button type="submit">Save picture details</button><button type="button" data-export-grade>Download graded copy</button></div><small class="photo-save-status" role="status">Original picture preserved.</small></form>`);
+  });
+}
+document.addEventListener("change",event=>{
+  if(event.target.name==="grade"&&event.target.closest(".photo-editor"))event.target.closest(".album-photo-card").querySelector("img").style.filter=photoGrades[event.target.value]||"none";
+  if(!["photoSubjectFilter","photoCategoryFilter"].includes(event.target.id))return;
+  const subject=$("#photoSubjectFilter").value,category=$("#photoCategoryFilter").value;let count=0;
+  $$("#albumPhotoGrid .album-photo-card").forEach(card=>{card.hidden=Boolean((subject&&card.dataset.subject!==subject&&!(subject!=="Oko and Atteh"&&card.dataset.subject==="Oko and Atteh"))||(category&&card.dataset.category!==category));if(!card.hidden)count++});$("#photoFilterCount").textContent=`${count} pictures / files shown`;
+});
+$("#albumPhotoGrid").addEventListener("submit",async event=>{
+  const form=event.target.closest(".photo-editor");if(!form)return;event.preventDefault();const card=form.closest(".album-photo-card"),button=form.querySelector('[type="submit"]'),status=form.querySelector(".photo-save-status");button.disabled=true;status.textContent="Saving…";
+  try{const data=Object.fromEntries(new FormData(form));data.labels=data.labels.split(",").map(tag=>tag.trim()).filter(Boolean);const payload=await apiJson(`/api/media/${card.dataset.photoId}/annotations`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(data)});const index=openAlbumItems.findIndex(item=>item.id===payload.item.id);openAlbumItems[index]=payload.item;card.dataset.subject=data.subject;card.dataset.category=data.category;const badge=form.querySelector(".photo-category-badge");badge.style.background=photoCategories[data.category];badge.textContent=`${data.subject||"Person unassigned"} · ${data.category}`;card.querySelector(".album-photo span").textContent=data.label||payload.item.title;card.querySelector("img").alt=data.label||payload.item.title;status.textContent="Saved for everyone."}catch(error){status.textContent=error.message}finally{button.disabled=false}
+});
+$("#albumPhotoGrid").addEventListener("click",async event=>{
+  const button=event.target.closest("[data-export-grade]");if(!button)return;const card=button.closest(".album-photo-card"),item=openAlbumItems.find(item=>item.id===card.dataset.photoId);button.disabled=true;
+  try{const response=await fetch(item.previewHref);if(!response.ok)throw new Error("Could not load picture.");const bitmap=await createImageBitmap(await response.blob()),canvas=document.createElement("canvas");canvas.width=bitmap.width;canvas.height=bitmap.height;const context=canvas.getContext("2d");context.filter=photoGrades[card.querySelector('[name="grade"]').value];context.drawImage(bitmap,0,0);bitmap.close();const blob=await new Promise(resolve=>canvas.toBlob(resolve,"image/jpeg",.95));if(!blob)throw new Error("Could not export picture.");const url=URL.createObjectURL(blob),link=document.createElement("a");link.href=url;link.download=`${item.originalName.replace(/\.[^.]+$/,"")}-graded.jpg`;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}catch(error){toast(error.message)}finally{button.disabled=false}
+});
 function updateAlbumSelection(){
+  initialisePhotoTools();
   const count=selectedAlbumPhotos.size,total=openAlbumItems.length;
   $("#downloadAlbum").disabled=albumDownloadBusy||!total;
   $("#downloadSelectedPhotos").disabled=albumDownloadBusy||!count;
@@ -136,7 +168,7 @@ async function downloadAlbumPictures(selectedOnly){
 }
 $("#downloadAlbum").addEventListener("click",()=>downloadAlbumPictures(false));
 $("#downloadSelectedPhotos").addEventListener("click",()=>downloadAlbumPictures(true));
-function closeAlbum() {openAlbumId="";$("#albumGrid").hidden=false;$("#albumDetail").hidden=true;$("#fileLibrary").hidden=false;renderAlbums()}
+function closeAlbum() {openAlbumId="";$("#albumGrid").hidden=false;$("#albumDetail").hidden=true;$("#fileLibrary").hidden=false;if($("#photoFilters"))$("#photoFilters").hidden=true;renderAlbums()}
 $("#albumGrid").addEventListener("click",event=>{const button=event.target.closest("[data-open-album]");if(button)openAlbum(button.dataset.openAlbum).catch(error=>toast(error.message))});
 $("#closeAlbum").addEventListener("click",closeAlbum);
 $("#closeAlbumModal").addEventListener("click",()=>$("#albumModal").close());$("#cancelAlbum").addEventListener("click",()=>$("#albumModal").close());
@@ -158,6 +190,7 @@ function renderAlbumImage(){
   image.hidden=true;message.hidden=false;message.textContent="Loading picture…";
   image.onload=()=>{image.hidden=false;message.hidden=true};
   image.onerror=()=>{image.hidden=true;message.hidden=false;message.textContent="This picture could not be loaded. Try another picture."};
+  image.style.filter=link.querySelector("img").style.filter;
   image.alt=link.querySelector("img").alt;image.src=link.href;
 }
 $("#albumPhotoGrid").addEventListener("click",event=>{const link=event.target.closest('.album-photo[data-image="true"]');if(!link)return;event.preventDefault();albumImageLinks=$$('#albumPhotoGrid .album-photo[data-image="true"]');albumImageIndex=albumImageLinks.indexOf(link);renderAlbumImage();$("#albumViewer").showModal()});
