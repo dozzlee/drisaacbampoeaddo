@@ -13,7 +13,7 @@ from .models import ActivityAttachment, ActivitySubcommittee, ActivityTask, Medi
 class HubFlowTests(TestCase):
     def test_media_can_save_picture_annotations_and_original_is_preserved(self):
         photo = MediaAsset.objects.create(title="Original", asset_type="media", category="Albums", description="Archive", original_name="photo.jpg", mime_type="image/jpeg", external_url="/photo.jpg", available_to_media=True, document_status="approved")
-        payload = {"label": "Oko with family", "subject": "Oko", "category": "Family", "grade": "Warm", "labels": ["Accra", "1990"]}
+        payload = {"label": "Oko with family", "subject": "Oko", "category": "Family / Pictures with family at occasions", "grade": "Warm", "labels": ["Accra", "1990"]}
         response = self.client.post(f"/api/media/{photo.id}/annotations", payload, content_type="application/json", **self.auth("MEDIA2026"))
         self.assertEqual(response.status_code, 200)
         photo.refresh_from_db()

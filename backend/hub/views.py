@@ -18,6 +18,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 from .models import ActivityAttachment, ActivitySubcommittee, ActivityTask, MediaAlbum, MediaAsset, TributeAttachment, TributeParty, UserProfile, normalize_phone
 from .pdf_exports import build_tribute_register_pdf
+from .photo_categories import PHOTO_CATEGORIES
 
 logger = logging.getLogger(__name__)
 
@@ -533,7 +534,7 @@ def annotate_photo(request, asset_id):
         grade = data.get("grade", "Original")
         if not isinstance(label, str) or len(label) > 255 or not isinstance(labels, list) or len(labels) > 20 or any(not isinstance(tag, str) or len(tag) > 80 for tag in labels):
             raise ValueError()
-        if subject not in {"", "Oko", "Atteh", "Oko and Atteh"} or category not in {"Uncategorised", "Work", "Family", "Political", "Accra Academy", "Katanga", "Childhood", "Friends", "Community", "Celebrations", "Travel", "Portraits"} or grade not in {"Original", "Warm", "Cool", "Black and white", "Vintage", "Vivid"}:
+        if subject not in {"", "Oko", "Atteh", "Oko and Atteh"} or category not in PHOTO_CATEGORIES or grade not in {"Original", "Warm", "Cool", "Black and white", "Vintage", "Vivid"}:
             raise ValueError()
     except (ValueError, TypeError, AttributeError):
         return JsonResponse({"error": "Enter valid picture labels, categories and colour grade."}, status=400)
