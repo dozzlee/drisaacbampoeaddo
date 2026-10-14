@@ -8,7 +8,7 @@ PHOTO_CATEGORY_GROUPS = {
     "Nephews and nieces": ["Pictures with nieces and nephews"],
     "Professional": ["Clogsag", "Labour union", "Ministry of agriculture"],
     "School": ["Katanga", "Accra Academy"],
-    "Social": ["Pictures of travel"],
+    "Social": ["Social", "Social with friends", "Church"],
 }
 PHOTO_CATEGORIES = {"Uncategorised"} | {
     f"{group} / {name}" for group, names in PHOTO_CATEGORY_GROUPS.items() for name in names
